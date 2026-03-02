@@ -374,6 +374,24 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertTrue(result.contains("*italic*"))
     }
 
+    // MARK: - URL Normalization
+
+    func testLinkWithNewlineInHref() throws {
+        // Newlines in href should be stripped
+        let result = try convert("<a href=\"/page\n\">broken link</a>")
+        XCTAssertEqual(result, "[broken link](/page)")
+    }
+
+    func testLinkWithSpaceInHref() throws {
+        let result = try convert("<a href=\"http://Open Demo\">with space inside</a>")
+        XCTAssertEqual(result, "[with space inside](http://Open%20Demo)")
+    }
+
+    func testLinkWithWhitespaceAroundHref() throws {
+        let result = try convert("<a href=\"  example.com  \">with whitespace around</a>")
+        XCTAssertEqual(result, "[with whitespace around](example.com)")
+    }
+
     // MARK: - Performance
 
     func testLargeHTML() throws {

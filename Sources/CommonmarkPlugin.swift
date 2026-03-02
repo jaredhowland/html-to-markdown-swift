@@ -124,13 +124,22 @@ class CommonmarkPlugin: Plugin {
 
     // MARK: - Link Rendering
 
+    private func normalizeURL(_ rawURL: String) -> String {
+        var url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        url = url.replacingOccurrences(of: "\n", with: "")
+        url = url.replacingOccurrences(of: "\r", with: "")
+        url = url.replacingOccurrences(of: "\t", with: "")
+        url = url.replacingOccurrences(of: " ", with: "%20")
+        return url
+    }
+
     private func registerLinkRenderers(converter: Converter) {
         converter.registerRenderer("a") { [weak self] node, converter in
             guard let element = node as? Element else { return nil }
             guard let self = self else { return nil }
 
             let href = (try? element.attr("href")) ?? ""
-            let hrefTrimmed = href.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hrefTrimmed = normalizeURL(href)
 
             if hrefTrimmed.isEmpty && self.options.linkEmptyHrefBehavior == .skip {
                 return try renderChildren(node, converter: converter)
@@ -167,10 +176,11 @@ class CommonmarkPlugin: Plugin {
     // MARK: - Image Rendering
 
     private func registerImageRenderers(converter: Converter) {
-        converter.registerRenderer("img") { node, converter in
+        converter.registerRenderer("img") { [weak self] node, converter in
             guard let element = node as? Element else { return nil }
+            guard let self = self else { return nil }
 
-            let src = ((try? element.attr("src")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            let src = self.normalizeURL((try? element.attr("src")) ?? "")
             if src.isEmpty { return "" }
 
             var url = src
