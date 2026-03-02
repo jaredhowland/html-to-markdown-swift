@@ -74,6 +74,16 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(try convert("<h6>Heading 6</h6>"), "###### Heading 6")
     }
 
+    func testH7PlainText() throws {
+        // h7+ has no ATX equivalent; render as plain text
+        XCTAssertEqual(try convert("<h7>Heading 7</h7>"), "Heading 7")
+    }
+
+    func testEmptyHeadingProducesNothing() throws {
+        XCTAssertEqual(try convert("<h1></h1>"), "")
+        XCTAssertEqual(try convert("<h1> </h1>"), "")
+    }
+
     func testSetextH1() throws {
         var opts = CommonmarkOptions()
         opts.headingStyle = .setext
