@@ -1,0 +1,58 @@
+# Swift
+*.pbxuser
+*.perspectivev3
+*.xcprivacy
+
+# Build
+.build/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.lib
+*.jar
+*.class
+
+# Package Manager
+.swiftpm/
+Package.resolved
+
+# Xcode
+.DS_Store
+xcuserdata/
+*.xcworkspace/
+*.pbxproj
+.xcode.env
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+.coverage
+*.lcov
+coverage/
+
+# Documentation
+docs/_build/
+.documentation/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
