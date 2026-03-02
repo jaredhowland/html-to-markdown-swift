@@ -346,7 +346,7 @@ class CommonmarkPlugin: Plugin {
 
 private func applyDelimiterPerLine(_ content: String, delimiter: String) -> String {
     let trimmed = content.trimmingCharacters(in: .whitespaces)
-    if trimmed.isEmpty { return "\(delimiter)\(delimiter)" }
+    if trimmed.isEmpty { return "" }
 
     if !trimmed.contains("\n") {
         return "\(delimiter)\(trimmed)\(delimiter)"

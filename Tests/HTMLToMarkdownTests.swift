@@ -343,6 +343,22 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "**Bold**")
     }
 
+    // MARK: - Empty Inline Elements
+
+    func testEmptyBold() throws {
+        XCTAssertEqual(try convert("<strong></strong>"), "")
+    }
+
+    func testEmptyBoldInParagraph() throws {
+        let result = try convert("<p>some <strong></strong> text</p>")
+        XCTAssertFalse(result.contains("**"))
+        XCTAssertTrue(result.contains("some") && result.contains("text"))
+    }
+
+    func testEmptyItalic() throws {
+        XCTAssertEqual(try convert("<em></em>"), "")
+    }
+
     // MARK: - Edge Cases
 
     func testEmptyHTML() throws {
