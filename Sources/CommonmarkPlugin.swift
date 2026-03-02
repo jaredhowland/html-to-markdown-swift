@@ -299,12 +299,21 @@ class CommonmarkPlugin: Plugin {
                     let flat = trimmed
                         .replacingOccurrences(of: "\n", with: " ")
                         .replacingOccurrences(of: "\r", with: " ")
-                    let collapsed = collapseWhitespace(flat)
+                    let collapsed = escapePoundSignAtEnd(collapseWhitespace(flat))
                     let hashes = String(repeating: "#", count: level)
                     return "\n\n\(hashes) \(collapsed)\n\n"
                 }
             }
         }
+    }
+
+    private func escapePoundSignAtEnd(_ s: String) -> String {
+        guard !s.isEmpty, s.last == "#" else { return s }
+        if s.count >= 2 {
+            let beforeLast = s.index(s.endIndex, offsetBy: -2)
+            if s[beforeLast] == "\\" { return s }
+        }
+        return String(s.dropLast()) + "\\#"
     }
 
     // MARK: - Divider Rendering

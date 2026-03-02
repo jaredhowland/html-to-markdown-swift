@@ -79,6 +79,19 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(try convert("<h7>Heading 7</h7>"), "Heading 7")
     }
 
+    func testHeadingTrailingHash() throws {
+        XCTAssertEqual(try convert("<h1>Heading #</h1>"), "# Heading \\#")
+    }
+
+    func testHeadingTrailingDoubleHash() throws {
+        // Last # should be escaped; preceding ones do not need escaping
+        XCTAssertEqual(try convert("<h1>Heading ##</h1>"), "# Heading #\\#")
+    }
+
+    func testHeadingHashOnly() throws {
+        XCTAssertEqual(try convert("<h1>#</h1>"), "# \\#")
+    }
+
     func testEmptyHeadingProducesNothing() throws {
         XCTAssertEqual(try convert("<h1></h1>"), "")
         XCTAssertEqual(try convert("<h1> </h1>"), "")
