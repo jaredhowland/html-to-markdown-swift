@@ -26,7 +26,7 @@ let package = Package(
         ),
         .testTarget(
             name: "HTMLToMarkdownTests",
-            dependencies: ["HTMLToMarkdown"],
+            dependencies: ["HTMLToMarkdown", "SwiftSoup"],
             path: "Tests"
         )
     ]

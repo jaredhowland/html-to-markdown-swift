@@ -43,6 +43,11 @@ class BasePlugin: Plugin {
             if let textNode = node as? TextNode {
                 return textNode.getWholeText()
             }
+            // Handle non-Element nodes (e.g. Comment nodes) via registered renderers
+            let nodeName = node.nodeName()
+            if let renderer = converter.getRenderer(nodeName) {
+                return try renderer(node, converter)
+            }
             return nil
         }
 
@@ -86,7 +91,8 @@ class BasePlugin: Plugin {
         for tag in ["#document", "div", "section", "article", "main", "header", "footer", "p"] {
             converter.registerRenderer(tag) { node, converter in
                 let children = try renderChildren(node, converter: converter)
-                return trimConsecutiveNewlines("\n\n\(collapseInlineSpaces(children))\n\n")
+                let trimmed = collapseInlineSpaces(children).trimmingCharacters(in: .init(charactersIn: " \t"))
+                return trimConsecutiveNewlines("\n\n\(trimmed)\n\n")
             }
         }
     }
@@ -157,7 +163,13 @@ func collapseInlineSpaces(_ text: String) -> String {
 
 /// Render the node as raw HTML
 public func RenderAsHTML(_ node: Node, _ converter: Converter) throws -> String? {
-    guard let element = node as? Element else { return nil }
+    guard let element = node as? Element else {
+        // Handle Comment nodes: render as block HTML (<!--...-->)
+        if let comment = node as? Comment {
+            return "\n\n<!--\(comment.getData())-->\n\n"
+        }
+        return nil
+    }
     return try element.outerHtml()
 }
 

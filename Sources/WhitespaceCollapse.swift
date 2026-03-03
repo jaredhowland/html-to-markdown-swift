@@ -8,6 +8,7 @@ let htmlBlockTags: Set<String> = [
     "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
     "nav", "noscript", "ol", "p", "pre", "section", "table", "tfoot",
     "thead", "tbody", "tr", "th", "td", "ul", "video",
+    "body", "html", "head",
 ]
 
 /// Collapse whitespace in HTML document following browser whitespace rules.
@@ -48,18 +49,56 @@ private func processNode(_ node: Node) throws {
     }
 
     // After processing children, remove whitespace-only text nodes
-    // adjacent to block elements
+    // that are adjacent to block-level siblings.
     if htmlBlockTags.contains(tagName) {
-        // This is a block element — trim its children
         let children = element.getChildNodes()
         for child in children {
             guard let textNode = child as? TextNode else { continue }
             let text = textNode.getWholeText()
-            if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            guard text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+            // Remove if at least one adjacent visible sibling is a block-level element (or boundary)
+            let prevIsBlock = isBlockNode(prevVisibleSibling(textNode))
+            let nextIsBlock = isBlockNode(nextVisibleSibling(textNode))
+            if prevIsBlock || nextIsBlock {
                 try textNode.remove()
             }
         }
     }
+}
+
+/// Returns the previous visible (non-comment) sibling node
+private func prevVisibleSibling(_ node: Node) -> Node? {
+    var sibling = node.previousSibling()
+    while let s = sibling {
+        if s is Comment {
+            sibling = s.previousSibling()
+        } else {
+            return s
+        }
+    }
+    return nil
+}
+
+/// Returns the next visible (non-comment) sibling node
+private func nextVisibleSibling(_ node: Node) -> Node? {
+    var sibling = node.nextSibling()
+    while let s = sibling {
+        if s is Comment {
+            sibling = s.nextSibling()
+        } else {
+            return s
+        }
+    }
+    return nil
+}
+
+/// Returns true if node is a block-level element or absent (nil = boundary)
+private func isBlockNode(_ node: Node?) -> Bool {
+    guard let node = node else { return true }
+    if let element = node as? Element {
+        return htmlBlockTags.contains(element.tagName().lowercased())
+    }
+    return false
 }
 
 /// Collapse consecutive whitespace characters (space, tab, newline, CR) to a single space

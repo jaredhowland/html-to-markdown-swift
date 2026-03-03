@@ -34,12 +34,14 @@ public class Converter {
     /// Initialize a converter with plugins and options
     init(plugins: [Plugin] = [], options: [ConverterOption] = []) {
         self.plugins = plugins
-        processOptions(options)
-        
-        // Register plugins
+
+        // Register plugins first, then process options so that custom renderers
+        // from options can override plugin defaults.
         for plugin in plugins {
             plugin.register(with: self)
         }
+
+        processOptions(options)
     }
     
     /// Convert an HTML string to Markdown
