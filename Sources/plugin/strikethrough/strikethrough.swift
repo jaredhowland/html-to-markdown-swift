@@ -1,10 +1,11 @@
 import Foundation
 import SwiftSoup
 
-class StrikethroughPlugin: Plugin {
-    var name: String { return "strikethrough" }
+public class StrikethroughPlugin: Plugin {
+    public init() {}
+    public var name: String { return "strikethrough" }
 
-    func initialize(conv: Converter) throws {
+    public func initialize(conv: Converter) throws {
         conv.Register.escapedChar("~")
 
         conv.Register.unEscaper({ chars, idx in

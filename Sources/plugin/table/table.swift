@@ -48,15 +48,15 @@ public struct TableOptions {
 }
 
 /// Plugin for GFM table support
-class TablePlugin: Plugin {
-    var name: String { return "table" }
+public class TablePlugin: Plugin {
+    public var name: String { return "table" }
     let options: TableOptions
 
-    init(options: TableOptions = TableOptions()) {
+    public init(options: TableOptions = TableOptions()) {
         self.options = options
     }
 
-    func initialize(conv: Converter) throws {
+    public func initialize(conv: Converter) throws {
         conv.Register.tagType("td", .inline, priority: PriorityStandard)
         conv.Register.tagType("th", .inline, priority: PriorityStandard)
 

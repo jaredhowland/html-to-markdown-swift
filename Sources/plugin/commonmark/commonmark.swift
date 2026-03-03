@@ -1,12 +1,12 @@
 import Foundation
 import SwiftSoup
 
-class CommonmarkPlugin: Plugin {
-    var name: String { return "commonmark" }
+public class CommonmarkPlugin: Plugin {
+    public var name: String { return "commonmark" }
     let options: CommonmarkOptions
     var validationError: Error?
 
-    init(options: CommonmarkOptions = CommonmarkOptions()) {
+    public init(options: CommonmarkOptions = CommonmarkOptions()) {
         self.options = options
         do {
             try validateCommonmarkOptions(options)
@@ -15,7 +15,7 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
-    func initialize(conv: Converter) throws {
+    public func initialize(conv: Converter) throws {
         if let err = validationError { throw err }
 
         guard conv.registeredPluginNames.contains("base") else {

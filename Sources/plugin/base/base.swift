@@ -1,10 +1,11 @@
 import Foundation
 import SwiftSoup
 
-class BasePlugin: Plugin {
-    var name: String { return "base" }
+public class BasePlugin: Plugin {
+    public init() {}
+    public var name: String { return "base" }
 
-    func initialize(conv: Converter) throws {
+    public func initialize(conv: Converter) throws {
         for tag in ["head", "script", "style", "link", "meta",
                     "iframe", "noscript", "input", "textarea"] {
             conv.Register.tagType(tag, .remove, priority: PriorityStandard)
