@@ -68,6 +68,20 @@ class LinkifyPluginTests: XCTestCase {
                        "URL in inline code must not be linkified in: \(result)")
     }
 
+    func testUrlWithParentheses() throws {
+        let result = try convert("<p>See https://en.wikipedia.org/wiki/Apple_(disambiguation) here.</p>")
+        // Underscores in URLs get escaped by the Markdown renderer, so expect \_
+        XCTAssertTrue(result.contains("Apple\\_(disambiguation)](https://en.wikipedia.org/wiki/Apple"),
+                      "Wikipedia URL with parens should be fully linkified: \(result)")
+    }
+
+    func testUrlInParensLinkified() throws {
+        let result = try convert("<p>The endpoint (https://api.example.com) is available.</p>")
+        // (URL) is NOT a Markdown link — should be linkified
+        XCTAssertTrue(result.contains("[https://api.example.com](https://api.example.com)"),
+                      "URL in parentheses (not a Markdown link) should be linkified: \(result)")
+    }
+
     func testExistingMarkdownLinkNotDoubleWrapped() throws {
         let html = "<p><a href=\"https://example.com\">Click here</a></p>"
         let result = try convert(html)
