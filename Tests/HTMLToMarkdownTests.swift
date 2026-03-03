@@ -821,4 +821,30 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertTrue(result.contains("| H1 | H2 |"))
         XCTAssertTrue(result.contains("|:-:|") || result.contains("|---|") || result.contains("|--|"))
     }
+
+    func testEscapeOrderedListParenInParagraph() throws {
+        // "1) item" at start of line would form an ordered list — escape the ")"
+        XCTAssertEqual(try convert("<p>1) ordered list</p>"), "1\\) ordered list")
+    }
+
+    func testEscapeTildeFencedCode() throws {
+        // "~~~" at start of line would open a fenced code block — escape first ~
+        XCTAssertEqual(try convert("<p>~~~fenced code~~~</p>"), "\\~~~fenced code~~~")
+    }
+
+    func testEscapeStandaloneDividerDash() throws {
+        // "---" alone would render as a thematic break — escape first -
+        XCTAssertEqual(try convert("<p>---</p>"), "\\---")
+    }
+
+    func testEscapeDividerUnderscoreWithSpaces() throws {
+        // "_ _ _" would render as a thematic break — escape first _
+        XCTAssertEqual(try convert("<p>_ _ _</p>"), "\\_ _ _")
+    }
+
+    func testEscapeBacktickFencedOpening() throws {
+        // "```code```": only the FIRST backtick in the 3+ opening fence is escaped,
+        // matching Go's IsFencedCode skip behaviour.
+        XCTAssertEqual(try convert("<p>```code```</p>"), "\\```code\\`\\`\\`")
+    }
 }
