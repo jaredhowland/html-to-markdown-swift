@@ -670,4 +670,28 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertTrue(result.contains("- list a"))
         XCTAssertTrue(result.contains("- list b"))
     }
+
+    // MARK: - Bracket Escaping
+
+    func testOpenBracketWithCloseEscaped() throws {
+        XCTAssertEqual(try convert("<p>[a]</p>"), "\\[a]")
+    }
+
+    func testOpenBracketWithoutCloseNotEscaped() throws {
+        XCTAssertEqual(try convert("<p>[a</p>"), "[a")
+    }
+
+    func testBracketsInParagraph() throws {
+        XCTAssertEqual(try convert("<p>a(b)[c]</p>"), "a(b)\\[c]")
+    }
+
+    // MARK: - Setext Heading Escape (=)
+
+    func testSetextEqualSignEscaped() throws {
+        XCTAssertEqual(try convert("<p>not title<br/>===</p>"), "not title  \n\\===")
+    }
+
+    func testSetextSingleEqualEscaped() throws {
+        XCTAssertEqual(try convert("<p>not title<br/>=</p>"), "not title  \n\\=")
+    }
 }

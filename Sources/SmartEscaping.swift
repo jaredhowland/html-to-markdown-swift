@@ -7,7 +7,7 @@ let escapePlaceholder: Character = "\u{FFF9}"
 /// Mark potential escape candidates in text with a placeholder prefix.
 /// Only marks characters that could trigger markdown interpretation.
 func markEscapeCandidates(_ text: String) -> String {
-    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`"]
+    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`", "="]
     var result = ""
     result.reserveCapacity(text.count * 2)
     for char in text {
@@ -61,6 +61,10 @@ private func shouldEscape(chars: [Character], at placeholderIdx: Int, char: Char
         return isEmphasisContext(chars: chars, charIdx: charIdx)
     case ".":
         return isOrderedListContext(chars: chars, charIdx: charIdx)
+    case "=":
+        return isSetextHeaderContext(chars: chars, charIdx: charIdx)
+    case "[":
+        return isOpenBracketContext(chars: chars, charIdx: charIdx)
     default:
         return false
     }
@@ -184,4 +188,13 @@ private func isAtStartOfLine(chars: [Character], idx: Int) -> Bool {
         return false
     }
     return true
+}
+
+/// Returns true if `[` at charIdx has a matching `]` later on the same line.
+private func isOpenBracketContext(chars: [Character], charIdx: Int) -> Bool {
+    for j in (charIdx + 1)..<chars.count {
+        if chars[j] == "\n" { return false }
+        if chars[j] == "]" { return true }
+    }
+    return false
 }
