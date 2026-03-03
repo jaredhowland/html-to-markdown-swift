@@ -50,4 +50,48 @@ class ConverterConvertTests: XCTestCase {
         XCTAssertTrue(result.contains("Paragraph 1"))
         XCTAssertTrue(result.contains("Paragraph 100"))
     }
+
+    // Mirrors Go: TestConvertString_ErrNoRenderHandlers
+    func testConvertString_ErrNoRenderHandlers() throws {
+        let conv = Converter(plugins: [], options: [])
+        XCTAssertThrowsError(try conv.convertString("<strong>bold text</strong>")) { err in
+            XCTAssertTrue(
+                err.localizedDescription.contains("no render handlers are registered"),
+                "expected 'no render handlers' error but got: \(err)"
+            )
+        }
+    }
+
+    // Mirrors Go: TestConvertString_ErrBasePluginMissing
+    func testConvertString_ErrBasePluginMissing() throws {
+        XCTAssertThrowsError(
+            try HTMLToMarkdown.convert("<strong>bold text</strong>", plugins: [CommonmarkPlugin()])
+        ) { err in
+            XCTAssertTrue(
+                err.localizedDescription.contains("base"),
+                "expected 'base plugin required' error but got: \(err)"
+            )
+        }
+    }
+
+    // Mirrors Go: TestWithEscapeMode (simplified — tests observable effect of escape mode)
+    func testWithEscapeMode() throws {
+        let html = "<p>hello*world</p>"
+
+        let smartResult = try HTMLToMarkdown.convert(
+            html,
+            plugins: [BasePlugin(), CommonmarkPlugin()],
+            options: [.escapeMode(.smart)]
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let disabledResult = try HTMLToMarkdown.convert(
+            html,
+            plugins: [BasePlugin(), CommonmarkPlugin()],
+            options: [.escapeMode(.disabled)]
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+        XCTAssertNotEqual(smartResult, disabledResult, "smart and disabled modes should produce different output")
+        XCTAssertTrue(disabledResult.contains("*"), "disabled mode should not escape *")
+        XCTAssertFalse(disabledResult.contains("\\*"), "disabled mode should not add backslash escape")
+    }
 }

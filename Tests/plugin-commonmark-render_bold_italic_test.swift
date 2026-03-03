@@ -110,4 +110,41 @@ class CommonmarkBoldItalicTests: XCTestCase {
         let result = try convert("<p>before<strong> middle </strong>after</p>")
         XCTAssertEqual(result, "before **middle** after")
     }
+
+    // Mirrors Go: TestNewCommonmarkPlugin_Italic (table-driven)
+    func testNewCommonmarkPlugin_Italic() throws {
+        let nonBreakingSpace = "\u{00A0}"
+        let zeroWidthSpace = "\u{200B}"
+
+        let runs: [(desc: String, input: String, expected: String)] = [
+            ("simple", "<p><em>Text</em></p>", "*Text*"),
+            ("normal text surrounded by italic", "<em>Italic</em>Normal<em>Italic</em>", "*Italic*Normal*Italic*"),
+            ("italic text surrounded by normal", "Normal<em>Italic</em>Normal", "Normal*Italic*Normal"),
+            ("with spaces inside", "<p><em>  Text  </em></p>", "*Text*"),
+            ("with delimiter inside", "<p><em>*A*B*</em></p>", #"*\*A\*B\**"#),
+            ("adjacent", "<em>A</em><em>B</em> <em>C</em>", "*AB* *C*"),
+            ("adjacent and lots of spaces", "<em>  A  </em><em>  B  </em>  <em>  C  </em>", "*A B* *C*"),
+            ("nested", "<em>A <em>B</em> C</em>", "*A B C*"),
+            ("nested and lots of spaces", "<em>  A  <em>  B  </em>  C  </em>", "*A B C*"),
+            ("mixed nested 1", "<em>A <strong>B</strong> C</em>", "*A **B** C*"),
+            ("mixed nested 2", "<strong>A <em>B</em> C</strong>", "**A *B* C**"),
+            ("mixed different italic", "<i>A<em>B</em>C</i>", "*ABC*"),
+            ("next to each other in other containers",
+             "<div>\n\t<em>A</em>\n\t<article><em>B</em></article>\n\t<em>C</em>\n</div>",
+             "*A*\n\n*B*\n\n*C*"),
+            ("empty italic #1", "before<i></i>after", "beforeafter"),
+            ("empty italic #2", "before<i> </i>after", "before after"),
+            ("empty italic #3", "before <i> </i> after", "before after"),
+            ("italic with non-breaking-space", "before<i>\(nonBreakingSpace)</i>after", "before\(nonBreakingSpace)after"),
+            ("italic with zero-width-space", "before<i>\(zeroWidthSpace)</i>after", "before*\(zeroWidthSpace)*after"),
+        ]
+
+        for run in runs {
+            let result = try HTMLToMarkdown.convert(
+                run.input,
+                plugins: [BasePlugin(), CommonmarkPlugin()]
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+            XCTAssertEqual(result, run.expected, "[\(run.desc)]")
+        }
+    }
 }
