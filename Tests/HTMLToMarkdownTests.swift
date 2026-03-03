@@ -620,4 +620,24 @@ class HTMLToMarkdownTests: XCTestCase {
         let result = try convert(#"<a href="/" title="say &quot;hello&apos; world&quot;">text</a>"#)
         XCTAssertEqual(result, #"[text](/ "say \"hello' world\"")"#)
     }
+
+    // MARK: - Inline Code Raw Text (Go Compatibility)
+
+    func testInlineCodeAngleBrackets() throws {
+        // Go: `<b>not bold</b>` - angle brackets in code preserved as-is, not HTML-escaped
+        let result = try convert("<code>&lt;b&gt;not bold&lt;/b&gt;</code>")
+        XCTAssertEqual(result, "`<b>not bold</b>`")
+    }
+
+    func testInlineCodeCollapseWhitespace() throws {
+        // Go collapses whitespace in inline code content
+        let result = try convert("<code>foo   bar</code>")
+        XCTAssertEqual(result, "`foo bar`")
+    }
+
+    func testInlineCodeCollapseNewline() throws {
+        // Go collapses newlines to spaces in inline code
+        let result = try convert("<code>foo\nbar</code>")
+        XCTAssertEqual(result, "`foo bar`")
+    }
 }

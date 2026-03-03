@@ -410,18 +410,24 @@ class CommonmarkPlugin: Plugin {
     // MARK: - Code Rendering
 
     private func registerCodeRenderers(converter: Converter) {
-        let inlineCodeRenderer: NodeRenderer = { [weak self] node, converter in
-            _ = self
+        let inlineCodeRenderer: NodeRenderer = { node, converter in
             if let element = node as? Element, let parent = element.parent(), parent.tagName() == "pre" {
-                return try renderChildren(node, converter: converter)
+                return extractRawText(from: element)
             }
 
+            guard let element = node as? Element else { return nil }
             let fenceChar: Character = "`"
-            let content = try renderChildren(node, converter: converter)
 
-            if content.trimmingCharacters(in: .whitespaces).isEmpty {
-                return "`\(content)`"
+            // Extract raw text without HTML-escaping (code content preserves < > as-is)
+            let rawContent = extractRawText(from: element)
+
+            // Spaces-only content: preserve without stripping
+            if rawContent.trimmingCharacters(in: .whitespaces).isEmpty {
+                return "`\(rawContent)`"
             }
+
+            // Collapse whitespace: newlines/tabs→space, trim, deduplicate spaces
+            let content = collapseInlineCodeContent(rawContent)
 
             let maxCount = calculateMaxBacktickRun(in: content, char: fenceChar)
             let fenceLen = maxCount + 1
@@ -632,6 +638,19 @@ private func calculateMaxBacktickRun(in text: String, char: Character) -> Int {
         }
     }
     return maxRun
+}
+
+/// Collapse whitespace inside inline code content (matches Go's CollapseInlineCodeContent).
+/// Replaces newlines and tabs with spaces, trims, then collapses multiple spaces to one.
+private func collapseInlineCodeContent(_ content: String) -> String {
+    var result = content
+        .replacingOccurrences(of: "\n", with: " ")
+        .replacingOccurrences(of: "\t", with: " ")
+    result = result.trimmingCharacters(in: .whitespaces)
+    while result.contains("  ") {
+        result = result.replacingOccurrences(of: "  ", with: " ")
+    }
+    return result
 }
 
 /// Escape [ and ] characters in image alt text (matches Go's escapeAlt function)
