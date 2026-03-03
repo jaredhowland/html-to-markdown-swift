@@ -189,6 +189,26 @@ Output:
 | Bob | 25 |
 ```
 
+#### GFMPlugin
+
+Bundles `StrikethroughPlugin` and `TablePlugin`, and adds task lists, definition lists, details/summary, subscript/superscript, and abbreviations:
+
+```swift
+let conv = Converter()
+try conv.Register.plugin(BasePlugin())
+try conv.Register.plugin(CommonmarkPlugin())
+try conv.Register.plugin(GFMPlugin())  // Includes strikethrough, tables, task lists, and more
+```
+
+> **Note:** `GFMPlugin` bundles `StrikethroughPlugin` and `TablePlugin`, so you don't need to register those separately when using `GFMPlugin`.
+
+Supported features:
+- **Task lists**: `<input type="checkbox">` inside `<li>` → `- [x]` / `- [ ]`
+- **Definition lists**: `<dl>`, `<dt>`, `<dd>` → bold terms with colon-prefixed definitions
+- **Details/Summary**: `<details>`/`<summary>` → bold summary followed by content
+- **Subscript/Superscript**: `<sub>`/`<sup>` → HTML passthrough (`<sub>text</sub>`, `<sup>text</sup>`)
+- **Abbreviations**: `<abbr title="...">` → `text (expansion)`
+
 #### FrontmatterPlugin
 
 Prepends a YAML frontmatter block to the converted markdown output. Extracts metadata from `<head>` (title, author, description, keywords/tags) and computes word count and reading time from the rendered markdown.
