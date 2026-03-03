@@ -1092,7 +1092,11 @@ class CommonmarkPlugin: Plugin {
     // MARK: - Comment Rendering
 
     private func registerCommentRenderer(converter: Converter) {
-        converter.registerRenderer("#comment") { _, _ in
+        converter.registerRenderer("#comment") { node, _ in
+            // Render THE END list separator comments (inserted by addListEndComments)
+            if let comment = node as? Comment, comment.getData() == "THE END" {
+                return "\n\n<!--THE END-->\n\n"
+            }
             return ""
         }
     }
