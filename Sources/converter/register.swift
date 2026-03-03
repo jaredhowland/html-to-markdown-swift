@@ -40,14 +40,8 @@ public class TagTypeRegistry {
         if let entry = types[tagName] {
             return entry.type
         }
-        // Default types based on tag name
-        switch tagName.lowercased() {
-        case "div", "p", "article", "section", "header", "footer", "main", "nav",
-             "blockquote", "pre", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6", "table", "tr", "td", "th":
-            return .block
-        default:
-            return .inline
-        }
+        // Fallback: mirrors Go's dom.NameIsBlockNode used in preRenderCollapse.
+        return htmlBlockTags.contains(tagName.lowercased()) ? .block : .inline
     }
 }
 

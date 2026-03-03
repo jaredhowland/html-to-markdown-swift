@@ -9,7 +9,7 @@ class BasePlugin: Plugin {
         let blockTags = [
             "div", "p", "article", "section", "header", "footer", "main", "nav",
             "blockquote", "pre", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
-            "table", "thead", "tbody", "tfoot", "tr", "td", "th", "hr", "figure", "figcaption"
+            "table", "td", "th", "hr", "figure", "figcaption"
         ]
         let inlineTags = [
             "span", "strong", "em", "b", "i", "u", "code", "a", "img", "br",
