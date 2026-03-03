@@ -62,9 +62,16 @@ class ReplacementsPluginTests: XCTestCase {
     }
 
     func testHorizontalRulePreserved() throws {
-        // Standalone --- should NOT be converted to em dash
-        let result = try convert("<hr>")
-        XCTAssertFalse(result.contains("—"), "Horizontal rule should not become em dash: \(result)")
+        // When HR is configured as "---", it should NOT be converted to em dash
+        let conv = Converter()
+        try conv.Register.plugin(BasePlugin())
+        var hrOptions = CommonmarkOptions()
+        hrOptions.horizontalRule = "---"
+        try conv.Register.plugin(CommonmarkPlugin(options: hrOptions))
+        try conv.Register.plugin(ReplacementsPlugin())
+        let result = try conv.convertString("<hr>").trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertTrue(result.contains("---"), "HR should be preserved as --- in: \(result)")
+        XCTAssertFalse(result.contains("—"), "--- HR should NOT be converted to em dash: \(result)")
     }
 
     func testEmDashInProse() throws {
