@@ -79,4 +79,46 @@ class AtlassianPluginTests: XCTestCase {
         XCTAssertTrue(result.contains("| Name"), "Expected table header in: \(result)")
         XCTAssertTrue(result.contains("| Alpha"), "Expected table row in: \(result)")
     }
+
+    // MARK: - Confluence code blocks
+
+    func testConfluenceCodeBlock() throws {
+        let html = """
+        <ac:structured-macro ac:name="code">
+          <ac:parameter ac:name="language">java</ac:parameter>
+          <ac:plain-text-body>System.out.println("Hello");</ac:plain-text-body>
+        </ac:structured-macro>
+        """
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("java"), "Expected language hint in: \(result)")
+        XCTAssertTrue(result.contains("System.out.println"), "Expected code content in: \(result)")
+    }
+
+    func testConfluenceCodeBlockNoLanguage() throws {
+        let html = """
+        <ac:structured-macro ac:name="code">
+          <ac:plain-text-body>echo hello</ac:plain-text-body>
+        </ac:structured-macro>
+        """
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("echo hello"), "Expected code content in: \(result)")
+        XCTAssertTrue(result.contains("```"), "Expected fenced code block in: \(result)")
+    }
+
+    // MARK: - Confluence attachments
+
+    func testConfluenceImageAttachment() throws {
+        let html = "<ac:image><ri:attachment ri:filename=\"screenshot.png\"/></ac:image>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("screenshot.png"), "Expected filename in: \(result)")
+    }
+
+    func testConfluenceLinkAttachment() throws {
+        let html = """
+        <ac:link><ri:attachment ri:filename="doc.pdf"/>
+        <ac:plain-text-link-body>Download</ac:plain-text-link-body></ac:link>
+        """
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("[Download](doc.pdf)"), "Expected attachment link in: \(result)")
+    }
 }
