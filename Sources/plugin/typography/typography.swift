@@ -48,12 +48,13 @@ public class TypographyPlugin: Plugin {
     }
 }
 
-// Stubs — will be replaced by proper implementations in subsequent tasks
 public class SmartQuotesPlugin: Plugin {
     public var name: String { return "typography-smartquotes" }
     let style: QuoteStyle
     public init(style: QuoteStyle = .english) { self.style = style }
-    public func initialize(conv: Converter) throws {}
+    public func initialize(conv: Converter) throws {
+        register(conv: conv)
+    }
 }
 
 public class ReplacementsPlugin: Plugin {
