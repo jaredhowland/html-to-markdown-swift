@@ -574,4 +574,30 @@ class HTMLToMarkdownTests: XCTestCase {
         let result = try convert("<p><b><b><i><b>hello</b></i></b></b></p>")
         XCTAssertEqual(result, "***hello***")
     }
+
+    // MARK: - URL Encoding (Go Compatibility)
+
+    func testURLNewlineInMiddleEncoded() throws {
+        // Go encodes \n as %0A (not strips) when in the middle of a URL
+        let result = try convert("<a href=\"/page\n\n.html\">broken link</a>")
+        XCTAssertEqual(result, "[broken link](/page%0A%0A.html)")
+    }
+
+    func testURLTabEncoded() throws {
+        // Go encodes \t as %09
+        let result = try convert("<a href=\"/path\there\">link</a>")
+        XCTAssertEqual(result, "[link](/path%09here)")
+    }
+
+    func testURLBracketsEncoded() throws {
+        // Go encodes [ and ] in URLs as %5B and %5D
+        let result = try convert("<a href=\"/url[with]brackets\">link</a>")
+        XCTAssertEqual(result, "[link](/url%5Bwith%5Dbrackets)")
+    }
+
+    func testURLHashPassthrough() throws {
+        // Go returns "#" as-is (special case to avoid fragment confusion)
+        let result = try convert("<a href=\"#\">fragment</a>")
+        XCTAssertEqual(result, "[fragment](#)")
+    }
 }

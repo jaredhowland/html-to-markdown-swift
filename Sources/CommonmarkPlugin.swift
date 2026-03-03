@@ -290,13 +290,48 @@ class CommonmarkPlugin: Plugin {
         return "\"\(normalized)\""
     }
 
-    private func normalizeURL(_ rawURL: String) -> String {
+    /// Assemble an absolute URL from a raw href and optional base domain.
+    /// Matches Go's defaultAssembleAbsoluteURL logic.
+    private func assembleAbsoluteURL(_ rawURL: String, domain: String?) -> String {
         var url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        url = url.replacingOccurrences(of: "\n", with: "")
-        url = url.replacingOccurrences(of: "\r", with: "")
-        url = url.replacingOccurrences(of: "\t", with: "")
+
+        // Go special-cases "#" to avoid fragment confusion in url.Parse
+        if url == "#" { return url }
+
+        // Encode control characters (Go: ReplaceAll "\n"→"%0A", "\t"→"%09")
+        url = url.replacingOccurrences(of: "\n", with: "%0A")
+        url = url.replacingOccurrences(of: "\t", with: "%09")
+
+        // Resolve against base domain if provided
+        if let domain = domain, !domain.isEmpty {
+            if let baseURL = parseBaseDomain(domain) {
+                let urlForParsing = url.replacingOccurrences(of: " ", with: "%20")
+                if let relURL = URL(string: urlForParsing, relativeTo: baseURL) {
+                    url = relURL.absoluteString
+                } else if !url.hasPrefix("http") && !url.contains(":") {
+                    let base = domain.hasSuffix("/") ? String(domain.dropLast()) : domain
+                    let path = url.hasPrefix("/") ? url : "/" + url
+                    url = base + path
+                }
+            }
+        }
+
+        // Apply final percent encoding (matches Go's percentEncodingReplacer)
         url = url.replacingOccurrences(of: " ", with: "%20")
+        url = url.replacingOccurrences(of: "[", with: "%5B")
+        url = url.replacingOccurrences(of: "]", with: "%5D")
+        url = url.replacingOccurrences(of: "(", with: "%28")
+        url = url.replacingOccurrences(of: ")", with: "%29")
+        url = url.replacingOccurrences(of: "<", with: "%3C")
+        url = url.replacingOccurrences(of: ">", with: "%3E")
         return url
+    }
+
+    private func parseBaseDomain(_ rawDomain: String) -> URL? {
+        if rawDomain.isEmpty { return nil }
+        if let url = URL(string: rawDomain), url.host != nil { return url }
+        if let url = URL(string: "http://" + rawDomain), url.host != nil { return url }
+        return nil
     }
 
     private func registerLinkRenderers(converter: Converter) {
@@ -304,10 +339,10 @@ class CommonmarkPlugin: Plugin {
             guard let element = node as? Element else { return nil }
             guard let self = self else { return nil }
 
-            let href = (try? element.attr("href")) ?? ""
-            let hrefTrimmed = normalizeURL(href)
+            let rawHref = (try? element.attr("href")) ?? ""
+            let href = self.assembleAbsoluteURL(rawHref, domain: converter.getOptions().baseDomain)
 
-            if hrefTrimmed.isEmpty && self.options.linkEmptyHrefBehavior == .skip {
+            if href.isEmpty && self.options.linkEmptyHrefBehavior == .skip {
                 return try renderChildren(node, converter: converter)
             }
 
@@ -318,13 +353,6 @@ class CommonmarkPlugin: Plugin {
                 return ""
             }
 
-            var url = hrefTrimmed
-            if let domain = converter.getOptions().baseDomain, !hrefTrimmed.isEmpty && !hrefTrimmed.hasPrefix("http") && !hrefTrimmed.hasPrefix("//") {
-                let base = domain.hasSuffix("/") ? String(domain.dropLast()) : domain
-                let path = hrefTrimmed.hasPrefix("/") ? hrefTrimmed : "/" + hrefTrimmed
-                url = base + path
-            }
-
             let title = ((try? element.attr("title")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
             let leftPad = content.prefix(while: { $0 == " " })
@@ -332,9 +360,9 @@ class CommonmarkPlugin: Plugin {
             let innerContent = trimmedContent
 
             if title.isEmpty {
-                return "\(leftPad)[\(innerContent)](\(url))\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(href))\(rightPad)"
             } else {
-                return "\(leftPad)[\(innerContent)](\(url) \(formatLinkTitle(title)))\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(href) \(self.formatLinkTitle(title)))\(rightPad)"
             }
         }
     }
@@ -346,24 +374,18 @@ class CommonmarkPlugin: Plugin {
             guard let element = node as? Element else { return nil }
             guard let self = self else { return nil }
 
-            let src = self.normalizeURL((try? element.attr("src")) ?? "")
+            let rawSrc = (try? element.attr("src")) ?? ""
+            let src = self.assembleAbsoluteURL(rawSrc, domain: converter.getOptions().baseDomain)
             if src.isEmpty { return "" }
-
-            var url = src
-            if let domain = converter.getOptions().baseDomain, !src.hasPrefix("http") && !src.hasPrefix("//") {
-                let base = domain.hasSuffix("/") ? String(domain.dropLast()) : domain
-                let path = src.hasPrefix("/") ? src : "/" + src
-                url = base + path
-            }
 
             let rawAlt = ((try? element.attr("alt")) ?? "").replacingOccurrences(of: "\n", with: " ")
             let alt = escapeAltText(rawAlt)
             let title = ((try? element.attr("title")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
             if title.isEmpty {
-                return "![\(alt)](\(url))"
+                return "![\(alt)](\(src))"
             } else {
-                return "![\(alt)](\(url) \(formatLinkTitle(title)))"
+                return "![\(alt)](\(src) \(self.formatLinkTitle(title)))"
             }
         }
     }
