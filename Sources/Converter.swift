@@ -45,7 +45,9 @@ public class Converter {
     /// Convert an HTML string to Markdown
     func convertString(_ html: String) throws -> String {
         let document = try SwiftSoup.parse(html)
-        return try convertNode(document)
+        var result = try convertNode(document)
+        result = applySmartEscaping(result)
+        return result
     }
     
     /// Convert an HTML document node to Markdown

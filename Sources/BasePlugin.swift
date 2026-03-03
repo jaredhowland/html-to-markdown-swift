@@ -56,9 +56,11 @@ class BasePlugin: Plugin {
     }
 
     func handleTextTransform(text: String, converter: Converter) throws -> String {
-        return text
+        var result = text
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
+        result = markEscapeCandidates(result)
+        return result
     }
 
     private func renderDefault(element: Element, converter: Converter) throws -> String {

@@ -447,6 +447,40 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertFalse(result.contains("<!--THE END-->"))
     }
 
+    // MARK: - Smart Escaping
+
+    func testEscapeListDashInParagraph() throws {
+        XCTAssertEqual(try convert("<p>- not a list</p>"), "\\- not a list")
+    }
+
+    func testEscapeOrderedListInParagraph() throws {
+        XCTAssertEqual(try convert("<p>1. not a list</p>"), "1\\. not a list")
+    }
+
+    func testEscapeStarListInParagraph() throws {
+        XCTAssertEqual(try convert("<p>* not a list</p>"), "\\* not a list")
+    }
+
+    func testEscapePlusListInParagraph() throws {
+        XCTAssertEqual(try convert("<p>+ not a list</p>"), "\\+ not a list")
+    }
+
+    func testEscapeAtxHashInParagraph() throws {
+        XCTAssertEqual(try convert("<p># not title</p>"), "\\# not title")
+    }
+
+    func testNoEscapeAsteriskFollowedBySpace() throws {
+        // * followed by space is NOT an emphasis marker, no escaping
+        let result = try convert("<p>text * more</p>")
+        XCTAssertEqual(result, "text * more")
+    }
+
+    func testEscapeAsteriskEmphasis() throws {
+        // *word* would be emphasis — escape the *
+        let result = try convert("<p>text *emphasis* more</p>")
+        XCTAssertEqual(result, "text \\*emphasis\\* more")
+    }
+
     // MARK: - Performance
 
     func testLargeHTML() throws {
