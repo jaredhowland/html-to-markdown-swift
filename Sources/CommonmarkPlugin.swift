@@ -279,12 +279,18 @@ class CommonmarkPlugin: Plugin {
     // MARK: - Link Rendering
 
     private func formatLinkTitle(_ title: String) -> String {
-        // Collapse newlines to space
+        // Collapse newlines to space (matches Go: strings.ReplaceAll(title, "\n", " "))
         let normalized = title
             .replacingOccurrences(of: "\r\n", with: " ")
             .replacingOccurrences(of: "\n", with: " ")
             .replacingOccurrences(of: "\r", with: " ")
-        if normalized.contains("\"") {
+        let hasDouble = normalized.contains("\"")
+        let hasSingle = normalized.contains("'")
+        if hasDouble && hasSingle {
+            let escaped = normalized.replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"\(escaped)\""
+        }
+        if hasDouble {
             return "'\(normalized)'"
         }
         return "\"\(normalized)\""
@@ -353,7 +359,12 @@ class CommonmarkPlugin: Plugin {
                 return ""
             }
 
-            let title = ((try? element.attr("title")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            // Go replaces "\n" with " " in title but does NOT trim surrounding whitespace
+            let rawTitle = (try? element.attr("title")) ?? ""
+            let title = rawTitle
+                .replacingOccurrences(of: "\r\n", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
 
             let leftPad = content.prefix(while: { $0 == " " })
             let rightPad = String(content.reversed().prefix(while: { $0 == " " }).reversed())
@@ -380,7 +391,13 @@ class CommonmarkPlugin: Plugin {
 
             let rawAlt = ((try? element.attr("alt")) ?? "").replacingOccurrences(of: "\n", with: " ")
             let alt = escapeAltText(rawAlt)
-            let title = ((try? element.attr("title")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Go replaces "\n" with " " in title but does NOT trim surrounding whitespace
+            let rawTitle = (try? element.attr("title")) ?? ""
+            let title = rawTitle
+                .replacingOccurrences(of: "\r\n", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
 
             if title.isEmpty {
                 return "![\(alt)](\(src))"

@@ -600,4 +600,24 @@ class HTMLToMarkdownTests: XCTestCase {
         let result = try convert("<a href=\"#\">fragment</a>")
         XCTAssertEqual(result, "[fragment](#)")
     }
+
+    // MARK: - Link Title (Go Compatibility)
+
+    func testLinkTitleSpacesPreserved() throws {
+        // Go does NOT trim surrounding whitespace from link title
+        let result = try convert("<a href=\"/\" title=\"  link title  \">content</a>")
+        XCTAssertEqual(result, "[content](/ \"  link title  \")")
+    }
+
+    func testImageTitleSpacesPreserved() throws {
+        // Go does NOT trim surrounding whitespace from image title
+        let result = try convert("<img src=\"/img.png\" alt=\"alt\" title=\"  img title  \">")
+        XCTAssertEqual(result, "![alt](/img.png \"  img title  \")")
+    }
+
+    func testLinkTitleBothQuoteTypes() throws {
+        // When title contains both " and ', escape " and wrap in double quotes
+        let result = try convert(#"<a href="/" title="say &quot;hello&apos; world&quot;">text</a>"#)
+        XCTAssertEqual(result, #"[text](/ "say \"hello' world\"")"#)
+    }
 }
