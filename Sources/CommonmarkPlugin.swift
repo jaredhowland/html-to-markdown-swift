@@ -109,12 +109,20 @@ class CommonmarkPlugin: Plugin {
         if let err = validationError {
             throw ConversionError.pluginError("error while initializing \"commonmark\" plugin: \(err.localizedDescription)")
         }
+        try renameFakeSpans(document)
         try removeEmptyCode(document)
         try removeRedundantBoldItalic(document)
         try mergeAdjacentBoldItalic(document)
         try swapTagsCodePre(document)
         try mergeAdjacentInlineCode(document)
         try addSpacesAroundEmphasisContainingCode(document)
+        try removeRedundantLink(document)
+        try swapTagsLinkHeading(document)
+        try leafBlockAlternatives(document)
+        try moveListItems(document)
+        if !options.disableListEndComment {
+            try addListEndComments(document)
+        }
     }
 
     // MARK: - DOM Pre-render Transformations
@@ -150,6 +158,92 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
+    private static let blockNodeNames: Set<String> = [
+        "address", "article", "aside", "audio", "blockquote", "body", "canvas", "center",
+        "dd", "dir", "div", "dl", "dt", "fieldset", "figcaption", "figure", "footer",
+        "form", "frameset", "h1", "h2", "h3", "h4", "h5", "h6", "header", "hgroup",
+        "hr", "html", "isindex", "li", "main", "menu", "nav", "noframes", "noscript",
+        "ol", "output", "p", "pre", "section", "table", "tbody", "td", "tfoot", "th",
+        "thead", "tr", "ul"
+    ]
+
+    private func isBlockNode(_ tag: String) -> Bool {
+        CommonmarkPlugin.blockNodeNames.contains(tag)
+    }
+
+    /// Matches Go's RemoveRedundant(doc, nameIsBothLink): unwrap any <a> that has
+    /// an ancestor <a>, since nested links are invalid in markdown.
+    private func removeRedundantLink(_ doc: Document) throws {
+        let links = try doc.select("a")
+        for link in links {
+            var p = link.parent()
+            while let parent = p {
+                if let parentEl = parent as? Element, parentEl.tagName() == "a" {
+                    try link.unwrap()
+                    break
+                }
+                p = parent.parent()
+            }
+        }
+    }
+
+    /// Matches Go's domutils.RenameFakeSpans: renames <span> to <div> if
+    /// any block element is found as a descendant.
+    private func renameFakeSpans(_ doc: Document) throws {
+        func containsBlock(_ node: Node) -> Bool {
+            for child in node.getChildNodes() {
+                if let el = child as? Element {
+                    if isBlockNode(el.tagName()) { return true }
+                    if containsBlock(el) { return true }
+                }
+            }
+            return false
+        }
+        func walk(_ node: Node) throws {
+            if let el = node as? Element, el.tagName() == "span", containsBlock(el) {
+                try el.tagName("div")
+            }
+            for child in node.getChildNodes() {
+                try walk(child)
+            }
+        }
+        try walk(doc)
+    }
+
+    /// Matches Go's SwapTags(nameIsLink, nameIsHeading): if an <a> element has a sole
+    /// non-whitespace child that is a heading, swap their tag names and attributes.
+    private func swapTagsLinkHeading(_ doc: Document) throws {
+        let headingTags: Set<String> = ["h1", "h2", "h3", "h4", "h5", "h6"]
+        func walk(_ node: Node) throws {
+            if let link = node as? Element, link.tagName() == "a" {
+                let nonWs = link.getChildNodes().filter { child in
+                    if let text = child as? TextNode {
+                        return !text.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    }
+                    return true
+                }
+                if nonWs.count == 1, let inner = nonWs[0] as? Element, headingTags.contains(inner.tagName()) {
+                    // Swap tag names and attributes (matching Go's swapTagsOfNodes)
+                    let outerTag = link.tagName()
+                    let innerTag = inner.tagName()
+                    let outerAttrs = link.getAttributes()?.asList() ?? []
+                    let innerAttrs = inner.getAttributes()?.asList() ?? []
+                    try link.tagName(innerTag)
+                    try inner.tagName(outerTag)
+                    for attr in outerAttrs { try link.removeAttr(attr.getKey()) }
+                    for attr in innerAttrs { try link.attr(attr.getKey(), attr.getValue()) }
+                    for attr in innerAttrs { try inner.removeAttr(attr.getKey()) }
+                    for attr in outerAttrs { try inner.attr(attr.getKey(), attr.getValue()) }
+                    return
+                }
+            }
+            for child in node.getChildNodes() {
+                try walk(child)
+            }
+        }
+        try walk(doc)
+    }
+
     /// SwapTags(code, pre): if a code/var/samp/kbd/tt element's sole non-whitespace-text
     /// child is a <pre>, swap their tag names so <code><pre>x</pre></code> becomes
     /// <pre><code>x</code></pre>, which then renders as a fenced code block.
@@ -167,11 +261,17 @@ class CommonmarkPlugin: Plugin {
                 if nonEmptyChildren.count == 1,
                    let inner = nonEmptyChildren[0] as? Element,
                    inner.tagName() == "pre" {
-                    // Swap tag names
+                    // Swap tag names AND attributes (matching Go's swapTagsOfNodes)
                     let outerTag = element.tagName()
                     let innerTag = inner.tagName()
+                    let outerAttrs = element.getAttributes()?.asList() ?? []
+                    let innerAttrs = inner.getAttributes()?.asList() ?? []
                     try element.tagName(innerTag)
                     try inner.tagName(outerTag)
+                    for attr in outerAttrs { try element.removeAttr(attr.getKey()) }
+                    for attr in innerAttrs { try element.attr(attr.getKey(), attr.getValue()) }
+                    for attr in innerAttrs { try inner.removeAttr(attr.getKey()) }
+                    for attr in outerAttrs { try inner.attr(attr.getKey(), attr.getValue()) }
                     // Go's HTML5 parser strips the leading LF from <pre> start tag during
                     // parsing (HTML5 spec). After swapping, the inner element (was <pre>)
                     // would have had its leading \n stripped. We replicate that here.
@@ -191,8 +291,195 @@ class CommonmarkPlugin: Plugin {
         try swapIn(doc)
     }
 
+    /// Matches Go's domutils.LeafBlockAlternatives.
+    /// When a block element appears inside a leaf-block or inline context, replace it
+    /// with a markdown-compatible alternative.
+    private func leafBlockAlternatives(_ doc: Document) throws {
+        func getMarkdownStructure(_ tag: String) -> String {
+            switch tag {
+            case "#document", "html", "head", "body",
+                 "blockquote", "ul", "ol", "li":
+                return "container_block"
+            case "hr", "pre", "h1", "h2", "h3", "h4", "h5", "h6":
+                return "leaf_block"
+            case "#text", "span", "code",
+                 "b", "strong", "i", "em",
+                 "a", "img", "br":
+                return "inline"
+            default:
+                return ""
+            }
+        }
 
-    /// Add spaces around bold/italic elements whose first/last child is inline code.
+        func process(_ node: Node, isInsideLeafBlock: Bool, isInsideInline: Bool) throws {
+            var newIsLeaf = isInsideLeafBlock
+            var newIsInline = isInsideInline
+
+            if let element = node as? Element {
+                let tag = element.tagName()
+                let structure = getMarkdownStructure(tag)
+
+                if (structure == "container_block" || structure == "leaf_block") && (isInsideLeafBlock || isInsideInline) {
+                    switch tag {
+                    case "h1", "h2", "h3", "h4", "h5", "h6":
+                        try element.tagName("strong")
+                        // Insert <br> after this node
+                        let br = Element(Tag("br"), "")
+                        try element.after(br)
+                    case "blockquote":
+                        let quoteBefore = TextNode(" \"", "")
+                        let quoteAfter = TextNode("\" ", "")
+                        try element.before(quoteBefore)
+                        try element.after(quoteAfter)
+                        try element.tagName("span")
+                    case "pre":
+                        try element.tagName("code")
+                    case "hr":
+                        try element.remove()
+                        return
+                    default:
+                        try element.tagName("span")
+                    }
+                }
+
+                if structure == "leaf_block" { newIsLeaf = true }
+                if structure == "inline" { newIsInline = true }
+            }
+
+            let children = node.getChildNodes()
+            for child in children {
+                try process(child, isInsideLeafBlock: newIsLeaf, isInsideInline: newIsInline)
+            }
+        }
+
+        try process(doc, isInsideLeafBlock: false, isInsideInline: false)
+    }
+
+    /// Matches Go's domutils.MoveListItems.
+    /// In <ol>/<ul>, non-<li> non-whitespace children are moved into the previous <li>
+    /// or wrapped in a new <li>.
+    private func moveListItems(_ doc: Document) throws {
+        let listElements = try doc.select("ul, ol")
+        for list in listElements {
+            var changed = true
+            while changed {
+                changed = false
+                let children = list.getChildNodes()
+                for (idx, child) in children.enumerated() {
+                    // Skip whitespace-only text nodes
+                    if let textNode = child as? TextNode {
+                        if textNode.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            continue
+                        }
+                    }
+                    // Skip <li> elements — they're fine
+                    if let element = child as? Element, element.tagName() == "li" {
+                        continue
+                    }
+                    // Non-li node: find previous <li>
+                    var prevLi: Element? = nil
+                    for prevIdx in (0..<idx).reversed() {
+                        if let el = children[prevIdx] as? Element, el.tagName() == "li" {
+                            prevLi = el
+                            break
+                        }
+                    }
+                    try child.remove()
+                    if let li = prevLi {
+                        try li.appendChild(child)
+                    } else {
+                        // No previous li: wrap in new <li>
+                        let newLi = Element(Tag("li"), "")
+                        try newLi.appendChild(child)
+                        try list.prependChild(newLi)
+                    }
+                    changed = true
+                    break
+                }
+            }
+        }
+    }
+
+    // MARK: - List End Comments
+
+    /// Returns the next neighbor node excluding own children.
+    /// Matches Go's dom.GetNextNeighborNodeExcludingOwnChild.
+    private func getNextNeighborNodeExcludingOwnChild(_ node: Node) -> Node? {
+        // Skip own children: try next sibling first
+        if let sibling = node.nextSibling() { return sibling }
+        // Walk up the tree to find a parent with a next sibling
+        var current: Node? = node.parent()
+        while let parent = current {
+            if let sibling = parent.nextSibling() { return sibling }
+            current = parent.parent()
+        }
+        return nil
+    }
+
+    /// Returns the next neighbor node (including own children first).
+    /// Matches Go's dom.GetNextNeighborNode.
+    private func getNextNeighborNode(_ node: Node) -> Node? {
+        // Try first child
+        if let child = node.getChildNodes().first { return child }
+        // Then next sibling
+        if let sibling = node.nextSibling() { return sibling }
+        // Walk up the tree
+        var current: Node? = node.parent()
+        while let parent = current {
+            if let sibling = parent.nextSibling() { return sibling }
+            current = parent.parent()
+        }
+        return nil
+    }
+
+    /// Checks if the next reachable neighbor after a list node is also a list.
+    /// Whitespace-only text nodes are skipped (they would be removed by whitespace collapse).
+    /// Matches Go's nextNameIsList in domutils/list_end_comment.go.
+    private func nextNameIsList(_ listNode: Node) -> Bool {
+        var node: Node? = getNextNeighborNodeExcludingOwnChild(listNode)
+        while let current = node {
+            if let element = current as? Element {
+                let tag = element.tagName()
+                if tag == "ul" || tag == "ol" { return true }
+                if tag == "li" { return false }
+                if tag == "hr" { return false }
+                // For other elements, continue traversal into their children
+                node = getNextNeighborNode(current)
+                continue
+            }
+            if let comment = current as? Comment {
+                if comment.getData() == "THE END" { return false }
+                node = getNextNeighborNode(current)
+                continue
+            }
+            if let textNode = current as? TextNode {
+                let text = textNode.getWholeText()
+                // Whitespace-only text nodes are removed by collapse, so skip them
+                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    node = getNextNeighborNode(current)
+                    continue
+                }
+                return false
+            }
+            node = getNextNeighborNode(current)
+        }
+        return false
+    }
+
+    /// Inserts `<!--THE END-->` comment nodes between adjacent lists in the DOM.
+    /// Matches Go's domutils.AddListEndComments. Runs AFTER whitespace collapse logic is factored in
+    /// by treating whitespace-only text nodes as transparent (equivalent to collapse removing them).
+    private func addListEndComments(_ doc: Document) throws {
+        let allElements = try doc.getAllElements()
+        for element in allElements {
+            let tag = element.tagName()
+            guard tag == "ul" || tag == "ol" else { continue }
+            if nextNameIsList(element) {
+                try element.after("<!--THE END-->")
+            }
+        }
+    }
+
     /// Mirrors Go's domutils.AddSpace(ctx, doc, nameIsBoldOrItalic, nameIsInlineCode).
     private func addSpacesAroundEmphasisContainingCode(_ doc: Document) throws {
         let emphasisElements = try doc.select("strong, b, em, i")
@@ -562,35 +849,6 @@ class CommonmarkPlugin: Plugin {
             var effectiveTitle = title
             if href.isEmpty { effectiveTitle = "" }
 
-            // SwapTags(link, heading): if sole non-whitespace child is a heading,
-            // render as heading containing the link: `## [content](href)`
-            let nonWsChildren = element.getChildNodes().filter { child in
-                if let text = child as? TextNode {
-                    return !text.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                }
-                return true
-            }
-            if nonWsChildren.count == 1, let headingEl = nonWsChildren[0] as? Element {
-                let tagName = headingEl.tagName()
-                if tagName.count == 2 && tagName.first == "h",
-                   let level = Int(String(tagName.last!)), (1...6).contains(level) {
-                    let hContent = try renderChildren(headingEl, converter: converter)
-                    let hContentEscaped = hContent.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
-                    let trimmedH = hContentEscaped.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let linkMd = effectiveTitle.isEmpty
-                        ? "[\(trimmedH)](\(href))"
-                        : "[\(trimmedH)](\(href) \(self.formatLinkTitle(effectiveTitle)))"
-                    if self.options.headingStyle == .setext && level <= 2 {
-                        let underlineChar: Character = level == 1 ? "=" : "-"
-                        let underline = String(repeating: underlineChar, count: max(3, trimmedH.count))
-                        return "\n\n\(linkMd)\n\(underline)\n\n"
-                    } else {
-                        let hashes = String(repeating: "#", count: level)
-                        return "\n\n\(hashes) \(linkMd)\n\n"
-                    }
-                }
-            }
-
             let content = try renderChildren(node, converter: converter)
             // Force-escape ] inside link text to prevent premature link closing
             let contentEscaped = content.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
@@ -747,15 +1005,7 @@ class CommonmarkPlugin: Plugin {
         converter.registerRenderer("ul") { [weak self] node, converter in
             guard let self = self else { return nil }
             let marker = self.options.bulletListMarker
-            var result = try renderListContainer(node: node, converter: converter, isOrdered: false, marker: marker, startAt: 1)
-            if !self.options.disableListEndComment, let element = node as? Element {
-                let nextTag = try? element.nextElementSibling()?.tagName()
-                if nextTag == "ul" || nextTag == "ol" {
-                    result = result.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
-                    result += "\n\n<!--THE END-->"
-                }
-            }
-            return result
+            return try renderListContainer(node: node, converter: converter, isOrdered: false, marker: marker, startAt: 1)
         }
 
         converter.registerRenderer("ol") { [weak self] node, converter in
@@ -766,15 +1016,7 @@ class CommonmarkPlugin: Plugin {
                let start = Int(startStr) {
                 startAt = start
             }
-            var result = try renderListContainer(node: node, converter: converter, isOrdered: true, marker: "-", startAt: startAt)
-            if !self.options.disableListEndComment, let element = node as? Element {
-                let nextTag = try? element.nextElementSibling()?.tagName()
-                if nextTag == "ul" || nextTag == "ol" {
-                    result = result.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
-                    result += "\n\n<!--THE END-->"
-                }
-            }
-            return result
+            return try renderListContainer(node: node, converter: converter, isOrdered: true, marker: "-", startAt: startAt)
         }
     }
 
@@ -808,19 +1050,26 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
+    /// Matches Go's escapePoundSignAtEnd: if the heading content ends with #,
+    /// force-escape it by replacing the placeholder before # with \\.
+    /// If already escaped (\ before the placeholder), do nothing.
     private func escapePoundSignAtEnd(_ s: String) -> String {
-        guard !s.isEmpty, s.last == "#" else { return s }
-        if s.count >= 2 {
-            let beforeLast = s.index(s.endIndex, offsetBy: -2)
-            if s[beforeLast] == "\\" { return s }
+        let chars = Array(s)
+        let n = chars.count
+        guard n >= 1, chars[n - 1] == "#" else { return s }
+        // Structure: ... placeholder # (placeholder at n-2)
+        // Check if already escaped: \ at n-3
+        if n >= 3 && chars[n - 3] == "\\" {
+            return s // Already escaped
         }
-        // Drop the # and also any trailing escape placeholder that was marking it,
-        // to prevent the placeholder from accidentally matching the \ in our appended \#.
-        var result = String(s.dropLast())
-        if result.last == escapePlaceholder {
-            result = String(result.dropLast())
+        // Overwrite the placeholder at n-2 with \
+        if n >= 2 && chars[n - 2] == escapePlaceholder {
+            var result = chars
+            result[n - 2] = "\\"
+            return String(result)
         }
-        return result + "\\#"
+        // No placeholder before #: just append escape
+        return s.dropLast() + "\\#"
     }
 
     // MARK: - Divider Rendering
