@@ -59,7 +59,9 @@ public class SmartQuotesPlugin: Plugin {
 public class ReplacementsPlugin: Plugin {
     public var name: String { return "typography-replacements" }
     public init() {}
-    public func initialize(conv: Converter) throws {}
+    public func initialize(conv: Converter) throws {
+        register(conv: conv)
+    }
 }
 
 public class LinkifyPlugin: Plugin {
