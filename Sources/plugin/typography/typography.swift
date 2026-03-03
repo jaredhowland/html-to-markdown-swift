@@ -68,5 +68,7 @@ public class ReplacementsPlugin: Plugin {
 public class LinkifyPlugin: Plugin {
     public var name: String { return "typography-linkify" }
     public init() {}
-    public func initialize(conv: Converter) throws {}
+    public func initialize(conv: Converter) throws {
+        register(conv: conv)
+    }
 }
