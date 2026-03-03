@@ -31,7 +31,13 @@ class GoldenFileTests: XCTestCase {
         })])]
     }
 
-    private let goldenBase = "/Users/wgu/Code/xcode/html-to-markdown/html-to-markdown-main"
+    private let goldenBase: String = {
+        // Derive path relative to this source file so tests work on any machine.
+        // Tests/data/ is a sibling of this test file inside the Tests/ directory.
+        let thisFile = URL(fileURLWithPath: #file)
+        let testsDir = thisFile.deletingLastPathComponent()
+        return testsDir.appendingPathComponent("data").path
+    }()
 
     func testCommonmarkBlockquote() {
         let base = "\(goldenBase)/plugin/commonmark/testdata/GoldenFiles/blockquote"
