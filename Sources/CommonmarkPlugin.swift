@@ -103,6 +103,160 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
+    func handleDocumentPreRender(document: Document, converter: Converter) throws {
+        if let err = validationError {
+            throw ConversionError.pluginError("error while initializing \"commonmark\" plugin: \(err.localizedDescription)")
+        }
+        try removeEmptyCode(document)
+        try removeRedundantBoldItalic(document)
+        try mergeAdjacentBoldItalic(document)
+        try mergeAdjacentInlineCode(document)
+    }
+
+    // MARK: - DOM Pre-render Transformations
+
+    private func isBoldTag(_ tag: String) -> Bool { tag == "b" || tag == "strong" }
+    private func isItalicTag(_ tag: String) -> Bool { tag == "em" || tag == "i" }
+    private func isInlineCodeTag(_ tag: String) -> Bool {
+        tag == "code" || tag == "var" || tag == "samp" || tag == "kbd" || tag == "tt"
+    }
+
+    private func hasTextContent(_ node: Node) -> Bool {
+        for child in node.getChildNodes() {
+            if let textNode = child as? TextNode {
+                if !textNode.getWholeText().isEmpty { return true }
+            } else if let element = child as? Element {
+                if hasTextContent(element) { return true }
+            }
+        }
+        return false
+    }
+
+    /// Remove <code> elements that have no text content (matches Go's RemoveEmptyCode)
+    private func removeEmptyCode(_ doc: Document) throws {
+        let codeElements = try doc.select("code")
+        var toRemove: [Element] = []
+        for element in codeElements {
+            if !hasTextContent(element) {
+                toRemove.append(element)
+            }
+        }
+        for element in toRemove {
+            try element.remove()
+        }
+    }
+
+    /// Unwrap redundant nested bold/italic elements (matches Go's RemoveRedundant)
+    private func removeRedundantBoldItalic(_ doc: Document) throws {
+        var toUnwrap: [Element] = []
+        for element in try doc.select("b, strong") {
+            if hasBoldAncestor(element) { toUnwrap.append(element) }
+        }
+        for element in toUnwrap { try element.unwrap() }
+
+        toUnwrap = []
+        for element in try doc.select("em, i") {
+            if hasItalicAncestor(element) { toUnwrap.append(element) }
+        }
+        for element in toUnwrap { try element.unwrap() }
+    }
+
+    private func hasBoldAncestor(_ element: Element) -> Bool {
+        var parent = element.parent()
+        while let p = parent {
+            if isBoldTag(p.tagName()) { return true }
+            parent = p.parent()
+        }
+        return false
+    }
+
+    private func hasItalicAncestor(_ element: Element) -> Bool {
+        var parent = element.parent()
+        while let p = parent {
+            if isItalicTag(p.tagName()) { return true }
+            parent = p.parent()
+        }
+        return false
+    }
+
+    /// Merge adjacent bold/italic elements (matches Go's MergeAdjacent for bold/italic)
+    private func mergeAdjacentBoldItalic(_ doc: Document) throws {
+        try mergeAdjacentElements(doc, matchFn: { tag in
+            self.isBoldTag(tag) || self.isItalicTag(tag)
+        }, sameFamilyFn: { a, b in
+            let aB = self.isBoldTag(a), bB = self.isBoldTag(b)
+            let aI = self.isItalicTag(a), bI = self.isItalicTag(b)
+            return (aB && bB) || (aI && bI)
+        })
+    }
+
+    /// Merge adjacent inline code elements (matches Go's MergeAdjacent for inline code)
+    private func mergeAdjacentInlineCode(_ doc: Document) throws {
+        try mergeAdjacentElements(doc, matchFn: { self.isInlineCodeTag($0) },
+                                   sameFamilyFn: { _, _ in true })
+    }
+
+    /// Generic adjacent element merger: for each matching element, if the next sibling
+    /// (skipping whitespace-only text nodes and spans) is also in the same family, merge.
+    private func mergeAdjacentElements(
+        _ doc: Document,
+        matchFn: (String) -> Bool,
+        sameFamilyFn: (String, String) -> Bool
+    ) throws {
+        var changed = true
+        while changed {
+            changed = false
+            let allElements = try doc.getAllElements()
+            for element in allElements {
+                let tag = element.tagName()
+                guard matchFn(tag) else { continue }
+                guard let nextEl = nextMatchingSibling(element, matchFn: matchFn,
+                                                       sameFamilyFn: { sameFamilyFn(tag, $0) })
+                else { continue }
+
+                // Move all children of nextEl into element, then remove nextEl
+                let children = nextEl.getChildNodes()
+                for child in children {
+                    try child.remove()
+                    try element.appendChild(child)
+                }
+                try nextEl.remove()
+                changed = true
+                break
+            }
+        }
+    }
+
+    /// Find the next sibling element that is in the same family, skipping spans and
+    /// whitespace-only text nodes. Returns nil if a non-matching, non-skippable node is found first.
+    private func nextMatchingSibling(
+        _ element: Element,
+        matchFn: (String) -> Bool,
+        sameFamilyFn: (String) -> Bool
+    ) -> Element? {
+        var sibling: Node? = element.nextSibling()
+        while let s = sibling {
+            if let textNode = s as? TextNode {
+                if textNode.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    sibling = s.nextSibling()
+                    continue
+                }
+                return nil  // non-empty text between → stop
+            }
+            if let el = s as? Element {
+                let tag = el.tagName()
+                if tag == "span" {
+                    sibling = s.nextSibling()
+                    continue
+                }
+                if matchFn(tag) && sameFamilyFn(tag) { return el }
+                return nil
+            }
+            return nil
+        }
+        return nil
+    }
+
     // MARK: - Bold and Italic Rendering
 
     private func registerBoldItalicRenderers(converter: Converter) {
@@ -202,7 +356,8 @@ class CommonmarkPlugin: Plugin {
                 url = base + path
             }
 
-            let alt = ((try? element.attr("alt")) ?? "").replacingOccurrences(of: "\n", with: " ")
+            let rawAlt = ((try? element.attr("alt")) ?? "").replacingOccurrences(of: "\n", with: " ")
+            let alt = escapeAltText(rawAlt)
             let title = ((try? element.attr("title")) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
 
             if title.isEmpty {
@@ -216,8 +371,9 @@ class CommonmarkPlugin: Plugin {
     // MARK: - Code Rendering
 
     private func registerCodeRenderers(converter: Converter) {
-        converter.registerRenderer("code") { [weak self] node, converter in
-            if let element = node as? Element, let parent = try? element.parent(), parent.tagName() == "pre" {
+        let inlineCodeRenderer: NodeRenderer = { [weak self] node, converter in
+            _ = self
+            if let element = node as? Element, let parent = element.parent(), parent.tagName() == "pre" {
                 return try renderChildren(node, converter: converter)
             }
 
@@ -237,6 +393,10 @@ class CommonmarkPlugin: Plugin {
             if inner.hasSuffix("`") { inner = inner + " " }
 
             return "\(fence)\(inner)\(fence)"
+        }
+
+        for tag in ["code", "var", "samp", "kbd", "tt"] {
+            converter.registerRenderer(tag, renderer: inlineCodeRenderer)
         }
 
         converter.registerRenderer("pre") { [weak self] node, converter in
@@ -376,7 +536,8 @@ class CommonmarkPlugin: Plugin {
 
 private func applyDelimiterPerLine(_ content: String, delimiter: String) -> String {
     let trimmed = content.trimmingCharacters(in: .whitespaces)
-    if trimmed.isEmpty { return "" }
+    // When content is all whitespace, preserve it (Go: leftExtra is written, no delimiter added)
+    if trimmed.isEmpty { return content }
 
     if !trimmed.contains("\n") {
         return "\(delimiter)\(trimmed)\(delimiter)"
@@ -432,6 +593,22 @@ private func calculateMaxBacktickRun(in text: String, char: Character) -> Int {
         }
     }
     return maxRun
+}
+
+/// Escape [ and ] characters in image alt text (matches Go's escapeAlt function)
+private func escapeAltText(_ alt: String) -> String {
+    var result = ""
+    let chars = Array(alt)
+    for (i, ch) in chars.enumerated() {
+        if ch == "[" || ch == "]" {
+            let prevIndex = i - 1
+            if prevIndex < 0 || chars[prevIndex] != "\\" {
+                result.append("\\")
+            }
+        }
+        result.append(ch)
+    }
+    return result
 }
 
 private func renderListContainer(node: Node, converter: Converter, isOrdered: Bool, marker: String, startAt: Int) throws -> String {
