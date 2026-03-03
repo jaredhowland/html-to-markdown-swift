@@ -55,6 +55,12 @@ public class Converter {
         }
 
         var result = try convertNode(document)
+
+        // Post-render: trim document-level whitespace (matches Go's postRenderTrimContent)
+        result = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        result = trimConsecutiveNewlines(result)
+        result = trimUnnecessaryHardLineBreaks(result)
+
         if getOptions().escapeMode != .disabled {
             result = applySmartEscaping(result)
         }
