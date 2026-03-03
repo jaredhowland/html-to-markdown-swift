@@ -817,7 +817,8 @@ private func renderListContainer(node: Node, converter: Converter, isOrdered: Bo
     for child in element.getChildNodes() {
         guard let liElement = child as? Element, liElement.tagName() == "li" else { continue }
         let content = try renderChildren(liElement, converter: converter)
-        let trimmed = trimConsecutiveNewlines(content).trimmingCharacters(in: .whitespacesAndNewlines)
+        var trimmed = trimConsecutiveNewlines(content).trimmingCharacters(in: .whitespacesAndNewlines)
+        trimmed = trimUnnecessaryHardLineBreaks(trimmed)
         if !trimmed.isEmpty {
             items.append(trimmed)
         }
