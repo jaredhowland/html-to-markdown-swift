@@ -59,7 +59,9 @@ class BasePlugin: Plugin {
         var result = text
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
-        result = markEscapeCandidates(result)
+        if converter.getOptions().escapeMode != .disabled {
+            result = markEscapeCandidates(result)
+        }
         return result
     }
 

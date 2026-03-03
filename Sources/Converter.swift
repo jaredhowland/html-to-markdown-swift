@@ -50,7 +50,9 @@ public class Converter {
         try collapseHTMLWhitespace(document)
 
         var result = try convertNode(document)
-        result = applySmartEscaping(result)
+        if getOptions().escapeMode != .disabled {
+            result = applySmartEscaping(result)
+        }
         return result
     }
     
