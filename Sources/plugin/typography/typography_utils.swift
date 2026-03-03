@@ -14,7 +14,7 @@ private func codeRanges(in text: String) -> [Range<String.Index>] {
     }
 
     // 2. Inline code spans: `code` or ``code`` etc.
-    let inlinePattern = "`{1,}[\\s\\S]*?`{1,}"
+    let inlinePattern = "(`+)[\\s\\S]*?\\1(?!`)"
     if let re = try? NSRegularExpression(pattern: inlinePattern) {
         for match in re.matches(in: text, range: NSRange(location: 0, length: nsText.length)) {
             if let r = Range(match.range, in: text) {
