@@ -18,7 +18,11 @@ extension Converter {
         }
 
         // Pre-render: collapse HTML whitespace (runs AFTER plugin pre-render, matching Go's PriorityLate)
-        try collapseHTMLWhitespace(document)
+        // Pass an isBlock closure that checks the registry first (registry-aware, matching Go's IsBlockNode).
+        try collapseHTMLWhitespace(document) { [self] name in
+            let tagType = self.getTagType(name)
+            return tagType == .block
+        }
 
         var result = try convertNode(document)
 

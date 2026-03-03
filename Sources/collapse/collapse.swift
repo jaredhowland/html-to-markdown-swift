@@ -1,23 +1,25 @@
 import Foundation
 import SwiftSoup
 
-/// Set of HTML block-level element tag names (matches Go's NameIsBlockNode)
-/// Note: table sub-elements (tr, td, th, thead, tbody, tfoot) are NOT included,
-/// matching Go's dom.NameIsBlockNode which returns false for these elements.
+/// Set of HTML block-level element tag names matching Go's `dom.NameIsBlockNode`.
+/// Used as fallback in TagTypeRegistry when a tag isn't explicitly registered,
+/// and in the registry-aware collapse isBlock closure.
 let htmlBlockTags: Set<String> = [
-    "address", "article", "aside", "blockquote", "canvas", "dd", "div",
-    "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
-    "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
-    "nav", "noscript", "ol", "p", "pre", "section", "table", "ul", "video",
-    "body", "html", "head",
+    "address", "article", "aside", "blockquote", "details", "dialog",
+    "dd", "div", "dl", "dt", "fieldset", "figcaption", "figure",
+    "footer", "form",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "header", "hgroup", "hr", "li", "main", "nav",
+    "ol", "p", "pre", "section", "table", "ul",
 ]
 
 /// Collapse whitespace in HTML document following Go's collapse.Collapse algorithm exactly.
 /// Mirrors the Go library's DFS traversal that visits elements on both entry and exit.
-func collapseHTMLWhitespace(_ document: Document) throws {
+/// `isBlock` mirrors Go's `IsBlockNode` closure: checked first (registry), falls back to htmlBlockTags.
+func collapseHTMLWhitespace(_ document: Document, isBlock: (String) -> Bool) throws {
     var prevText: TextNode? = nil
     var keepLeadingWs = false
-    try collapseChildren(document, prevText: &prevText, keepLeadingWs: &keepLeadingWs)
+    try collapseChildren(document, prevText: &prevText, keepLeadingWs: &keepLeadingWs, isBlock: isBlock)
     try trimTrailingSpace(&prevText)
 }
 
@@ -26,7 +28,8 @@ func collapseHTMLWhitespace(_ document: Document) throws {
 private func collapseChildren(
     _ parent: Node,
     prevText: inout TextNode?,
-    keepLeadingWs: inout Bool
+    keepLeadingWs: inout Bool,
+    isBlock: (String) -> Bool
 ) throws {
     for child in parent.getChildNodes() {
         if let textNode = child as? TextNode {
@@ -53,13 +56,13 @@ private func collapseChildren(
             let shouldRecurse = hasChildren && !isPreformatted(element)
 
             // ENTRY: apply element whitespace rules
-            applyElementWhitespaceRules(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs)
+            applyElementWhitespaceRules(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs, isBlock: isBlock)
 
             if shouldRecurse {
-                try collapseChildren(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs)
+                try collapseChildren(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs, isBlock: isBlock)
 
                 // EXIT: apply same rules again (mirrors Go's second visit when returning from children)
-                applyElementWhitespaceRules(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs)
+                applyElementWhitespaceRules(element, prevText: &prevText, keepLeadingWs: &keepLeadingWs, isBlock: isBlock)
             }
             // Comment, DocType, etc.: skip (Go ignores them for whitespace purposes)
         }
@@ -71,10 +74,11 @@ private func collapseChildren(
 private func applyElementWhitespaceRules(
     _ element: Element,
     prevText: inout TextNode?,
-    keepLeadingWs: inout Bool
+    keepLeadingWs: inout Bool,
+    isBlock: (String) -> Bool
 ) {
     let tagName = element.tagName().lowercased()
-    if htmlBlockTags.contains(tagName) || tagName == "br" {
+    if isBlock(tagName) || tagName == "br" {
         // Block elements and <br>: trim trailing space from previous text, reset
         if let pt = prevText {
             var ptText = pt.getWholeText()

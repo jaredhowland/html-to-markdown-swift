@@ -3,10 +3,14 @@ import SwiftSoup
 
 /// Tags that are preformatted (whitespace preserved inside them).
 /// Matches Go's defaultIsPreformattedNode which returns true for "pre" and "code".
-private let preformattedTags: Set<String> = ["pre", "code", "script", "style"]
+private let preformattedTags: Set<String> = ["pre", "code"]
 
-/// Inline void/replaced elements (not <br> — handled as block-like for whitespace)
-let inlineVoidTags: Set<String> = ["img", "input", "select", "textarea"]
+/// Void (self-closing) HTML elements — matches Go's collapse.voidElements.
+/// Used to protect surrounding whitespace during collapse (keepLeadingWs = true).
+let inlineVoidTags: Set<String> = [
+    "area", "base", "br", "col", "command", "embed", "hr",
+    "img", "input", "keygen", "link", "meta", "param", "track", "wbr",
+]
 
 func isPreformatted(_ element: Element) -> Bool {
     return preformattedTags.contains(element.tagName().lowercased())
