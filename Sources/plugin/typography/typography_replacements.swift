@@ -21,8 +21,8 @@ extension ReplacementsPlugin {
                     t = re.stringByReplacingMatches(in: t, range: range, withTemplate: "…")
                 }
 
-                // Em dash: --- (not part of 4+ run)
-                if let re = try? NSRegularExpression(pattern: "(?<![-])-{3}(?![-])") {
+                // Em dash: --- between non-whitespace characters (not standalone horizontal rule)
+                if let re = try? NSRegularExpression(pattern: "(?<=[^\\s\\n\\-])-{3}(?=[^\\s\\n\\-])") {
                     let range = NSRange(t.startIndex..., in: t)
                     t = re.stringByReplacingMatches(in: t, range: range, withTemplate: "\u{2014}")
                 }

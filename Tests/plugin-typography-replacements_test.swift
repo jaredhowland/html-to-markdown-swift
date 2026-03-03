@@ -61,6 +61,18 @@ class ReplacementsPluginTests: XCTestCase {
         XCTAssertTrue(result.contains("37±0.5"), "Expected ± in: \(result)")
     }
 
+    func testHorizontalRulePreserved() throws {
+        // Standalone --- should NOT be converted to em dash
+        let result = try convert("<hr>")
+        XCTAssertFalse(result.contains("—"), "Horizontal rule should not become em dash: \(result)")
+    }
+
+    func testEmDashInProse() throws {
+        let result = try convert("<p>The result---unexpected---was good.</p>")
+        XCTAssertTrue(result.contains("result\u{2014}unexpected\u{2014}was"),
+                      "Em dashes between words should work: \(result)")
+    }
+
     func testCodeBlockUntouched() throws {
         let result = try convert("<pre><code>(c) 2024 -- not replaced</code></pre>")
         XCTAssertTrue(result.contains("(c) 2024 -- not replaced"),
