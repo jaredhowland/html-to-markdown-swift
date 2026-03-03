@@ -2,11 +2,11 @@ import Foundation
 import SwiftSoup
 
 extension CommonmarkPlugin {
-
-    func registerDividerRenderer(converter: Converter) {
-        converter.registerRenderer("hr") { [weak self] _, _ in
+    func registerDividerRenderer(conv: Converter) {
+        conv.Register.rendererFor("hr", .block, { [weak self] ctx, w, _ in
             let rule = self?.options.horizontalRule ?? "* * *"
-            return "\n\n\(rule)\n\n"
-        }
+            w.writeString("\n\n\(rule)\n\n")
+            return .success
+        }, priority: PriorityStandard)
     }
 }

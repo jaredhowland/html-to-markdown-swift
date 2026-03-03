@@ -56,23 +56,27 @@ class TablePlugin: Plugin {
         self.options = options
     }
 
-    func initialize(conv converter: Converter) {
-        converter.registerTagType("td", type: .inline, priority: .standard)
-        converter.registerTagType("th", type: .inline, priority: .standard)
+    func initialize(conv: Converter) throws {
+        conv.Register.tagType("td", .inline, priority: PriorityStandard)
+        conv.Register.tagType("th", .inline, priority: PriorityStandard)
 
-        converter.registerRenderer("table") { [weak self] node, converter in
-            guard let self = self, let tableElement = node as? Element else { return nil }
-            return try self.renderTable(tableElement, converter: converter)
-        }
+        conv.Register.rendererFor("table", .block, { [weak self] ctx, w, n in
+            guard let self = self, let tableElement = n as? Element else { return .tryNext }
+            guard let result = try? self.renderTable(tableElement, ctx: ctx) else { return .tryNext }
+            w.writeString(result)
+            return .success
+        }, priority: PriorityStandard)
 
-        // Register fallback block renderers for table structural elements without
-        // collapseInlineSpaces, matching Go's renderFallbackRow and default block rendering.
-        // This prevents collapsing spaces inside markdown table cells (e.g. "|      |").
         for tag in ["tr", "tbody", "thead", "tfoot"] {
-            converter.registerRenderer(tag) { node, converter in
-                let children = try renderChildren(node, converter: converter)
-                return trimConsecutiveNewlines("\n\n\(children)\n\n")
-            }
+            let tagLower = tag
+            conv.Register.renderer({ ctx, w, n in
+                let name = (n as? Element)?.tagName().lowercased() ?? n.nodeName().lowercased()
+                guard name == tagLower else { return .tryNext }
+                let buf = StringWriter()
+                ctx.renderChildNodes(buf, n)
+                w.writeString(trimConsecutiveNewlines("\n\n\(buf.string)\n\n"))
+                return .success
+            }, priority: PriorityStandard)
         }
     }
 }

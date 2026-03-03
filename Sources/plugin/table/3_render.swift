@@ -4,7 +4,7 @@ import SwiftSoup
 // MARK: - Table Rendering
 
 extension TablePlugin {
-    func renderTable(_ table: Element, converter: Converter) throws -> String? {
+    func renderTable(_ table: Element, ctx: Context) throws -> String? {
         if !options.presentationTables {
             if let role = try? table.attr("role"), role == "presentation" {
                 return nil
@@ -16,7 +16,7 @@ extension TablePlugin {
         let headerRow = selectHeaderRowNode(table)
         let normalRows = selectNormalRowNodes(table, headerRow: headerRow)
 
-        var rows = try collectRows(table, headerRow: headerRow, normalRows: normalRows, converter: converter)
+        var rows = try collectRows(table, headerRow: headerRow, normalRows: normalRows, ctx: ctx)
         if rows.isEmpty { return nil }
 
         for i in 0..<rows.count {
@@ -32,7 +32,7 @@ extension TablePlugin {
         }
 
         let alignments = collectAlignments(headerRow: headerRow, normalRows: normalRows)
-        let caption = try collectCaption(table, converter: converter)
+        let caption = try collectCaption(table, ctx: ctx)
 
         var maxWidths: [Int] = []
         for row in rows {

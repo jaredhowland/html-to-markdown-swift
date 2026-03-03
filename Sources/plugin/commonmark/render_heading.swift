@@ -2,15 +2,16 @@ import Foundation
 import SwiftSoup
 
 extension CommonmarkPlugin {
-
-    func registerHeadingRenderers(converter: Converter) {
+    func registerHeadingRenderers(conv: Converter) {
         for level in 1...6 {
             let tag = "h\(level)"
-            converter.registerRenderer(tag) { [weak self] node, converter in
-                guard let self = self else { return nil }
-                let content = try renderChildren(node, converter: converter)
+            conv.Register.rendererFor(tag, .block, { [weak self] ctx, w, n in
+                guard let self = self else { return .tryNext }
+                let buf = StringWriter()
+                ctx.renderChildNodes(buf, n)
+                let content = buf.string
                 let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty { return "" }
+                if trimmed.isEmpty { w.writeString(""); return .success }
 
                 if self.options.headingStyle == .setext && level <= 2 {
                     let escaped = escapeMultiLine(trimmed)
@@ -18,21 +19,20 @@ extension CommonmarkPlugin {
                     let maxWidth = max(3, lines.map { $0.count }.max() ?? 3)
                     let underlineChar: Character = level == 1 ? "=" : "-"
                     let underline = String(repeating: underlineChar, count: maxWidth)
-                    return "\n\n\(escaped)\n\(underline)\n\n"
+                    w.writeString("\n\n\(escaped)\n\(underline)\n\n")
                 } else {
                     let flat = trimmed
                         .replacingOccurrences(of: "\n", with: " ")
                         .replacingOccurrences(of: "\r", with: " ")
                     let collapsed = escapePoundSignAtEnd(collapseWhitespace(flat))
                     let hashes = String(repeating: "#", count: level)
-                    return "\n\n\(hashes) \(collapsed)\n\n"
+                    w.writeString("\n\n\(hashes) \(collapsed)\n\n")
                 }
-            }
+                return .success
+            }, priority: PriorityStandard)
         }
     }
 
-    /// Matches Go's escapePoundSignAtEnd: if the heading content ends with #,
-    /// force-escape it by replacing the placeholder before # with \\.
     private func escapePoundSignAtEnd(_ s: String) -> String {
         let chars = Array(s)
         let n = chars.count

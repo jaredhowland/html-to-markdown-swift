@@ -81,18 +81,16 @@ extension TablePlugin {
         return num
     }
 
-    func collectCellsInRow(_ rowElement: Element, rowIndex: Int, converter: Converter) throws -> ([String], [CellModification]) {
+    func collectCellsInRow(_ rowElement: Element, rowIndex: Int, ctx: Context) throws -> ([String], [CellModification]) {
         let cellElements = (try? rowElement.select("td,th").array()) ?? []
         var cells: [String] = []
         var allMods: [CellModification] = []
 
         for (colIndex, cellNode) in cellElements.enumerated() {
-            var content = try renderChildren(cellNode, converter: converter)
+            let cbuf = StringWriter(); ctx.renderChildNodes(cbuf, cellNode); var content = cbuf.string
             content = content.trimmingCharacters(in: .whitespacesAndNewlines)
-            // Apply smart escaping now so cell.count reflects final visible width.
-            // This mirrors Go's ctx.UnEscapeContent which resolves escape markers in cells.
-            if converter.getOptions().escapeMode != .disabled {
-                content = applySmartEscaping(content)
+            if ctx.conv.escapeMode != .disabled {
+                content = ctx.unEscapeContent(content)
                 content = content.replacingOccurrences(of: "|", with: "\\|")
             }
             cells.append(content)
@@ -108,12 +106,12 @@ extension TablePlugin {
         return (cells, allMods)
     }
 
-    func collectRows(_ table: Element, headerRow: Element?, normalRows: [Element], converter: Converter) throws -> [[String]] {
+    func collectRows(_ table: Element, headerRow: Element?, normalRows: [Element], ctx: Context) throws -> [[String]] {
         var rows: [[String]] = []
         var groupedMods: [[CellModification]] = []
 
         if let headerRow = headerRow {
-            let (cells, mods) = try collectCellsInRow(headerRow, rowIndex: 0, converter: converter)
+            let (cells, mods) = try collectCellsInRow(headerRow, rowIndex: 0, ctx: ctx)
             rows.append(cells)
             groupedMods.append(mods)
         } else {
@@ -122,7 +120,7 @@ extension TablePlugin {
         }
 
         for (index, rowNode) in normalRows.enumerated() {
-            let (cells, mods) = try collectCellsInRow(rowNode, rowIndex: index + 1, converter: converter)
+            let (cells, mods) = try collectCellsInRow(rowNode, rowIndex: index + 1, ctx: ctx)
             rows.append(cells)
             groupedMods.append(mods)
         }
@@ -167,9 +165,9 @@ extension TablePlugin {
         return cellElements.map { (try? $0.attr("align")) ?? "" }
     }
 
-    func collectCaption(_ table: Element, converter: Converter) throws -> String? {
+    func collectCaption(_ table: Element, ctx: Context) throws -> String? {
         guard let captionEl = try? table.select("caption").first() else { return nil }
-        var content = try renderChildren(captionEl, converter: converter)
+        let cbuf = StringWriter(); ctx.renderChildNodes(cbuf, captionEl); var content = cbuf.string
         content = content.trimmingCharacters(in: .whitespacesAndNewlines)
         return content.isEmpty ? nil : content
     }

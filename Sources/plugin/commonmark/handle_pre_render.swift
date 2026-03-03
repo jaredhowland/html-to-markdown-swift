@@ -17,9 +17,6 @@ extension CommonmarkPlugin {
     }
 
     func handleDocumentPreRender(document: Document, converter: Converter) throws {
-        if let err = validationError {
-            throw ConversionError.pluginError("error while initializing \"commonmark\" plugin: \(err.localizedDescription)")
-        }
         try renameFakeSpans(document)
         try removeEmptyCode(document)
         try removeRedundantBoldItalic(document)
@@ -31,9 +28,6 @@ extension CommonmarkPlugin {
         try swapTagsLinkHeading(document)
         try leafBlockAlternatives(document)
         try moveListItems(document)
-        if !options.disableListEndComment {
-            try addListEndComments(document)
-        }
     }
 
     /// Remove <code> elements that have no text content (matches Go's RemoveEmptyCode)
@@ -323,7 +317,7 @@ extension CommonmarkPlugin {
     }
 
     /// Inserts `<!--THE END-->` comment nodes between adjacent lists in the DOM.
-    private func addListEndComments(_ doc: Document) throws {
+    func addListEndComments(_ doc: Document) throws {
         let allElements = try doc.getAllElements()
         for element in allElements {
             let tag = element.tagName()

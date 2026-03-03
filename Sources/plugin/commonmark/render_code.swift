@@ -2,40 +2,37 @@ import Foundation
 import SwiftSoup
 
 extension CommonmarkPlugin {
+    func registerCodeRenderers(conv: Converter) {
+        let inlineCodeHandler: HandleRenderFunc = { ctx, w, n in
+            guard let element = n as? Element else { return .tryNext }
 
-    func registerCodeRenderers(converter: Converter) {
-        let inlineCodeRenderer: NodeRenderer = { node, converter in
-            if let element = node as? Element, let parent = element.parent(), parent.tagName() == "pre" {
-                return extractRawText(from: element)
+            if let parent = element.parent(), parent.tagName() == "pre" {
+                w.writeString(extractRawText(from: element))
+                return .success
             }
 
-            guard let element = node as? Element else { return nil }
             let fenceChar: Character = "`"
-
             let rawContent = extractRawText(from: element)
-
             if rawContent.trimmingCharacters(in: .whitespaces).isEmpty {
-                return "`\(rawContent)`"
+                w.writeString("`\(rawContent)`")
+                return .success
             }
-
             let content = collapseInlineCodeContent(rawContent)
-
             let maxCount = calculateMaxBacktickRun(in: content, char: fenceChar)
             let fenceLen = maxCount + 1
             let fence = String(repeating: fenceChar, count: fenceLen)
-
             var inner = content
             if inner.hasPrefix("`") { inner = " " + inner }
             if inner.hasSuffix("`") { inner = inner + " " }
-
-            return "\(fence)\(inner)\(fence)"
+            w.writeString("\(fence)\(inner)\(fence)")
+            return .success
         }
 
         for tag in ["code", "var", "samp", "kbd", "tt"] {
-            converter.registerRenderer(tag, renderer: inlineCodeRenderer)
+            conv.Register.rendererFor(tag, .inline, inlineCodeHandler, priority: PriorityStandard)
         }
 
-        converter.registerRenderer("pre") { [weak self] node, converter in
+        conv.Register.rendererFor("pre", .block, { [weak self] ctx, w, n in
             let fence = self?.options.codeBlockFence ?? "```"
             let fenceChar: Character = fence.first ?? "`"
 
@@ -43,7 +40,7 @@ extension CommonmarkPlugin {
             var rawContent = ""
             var hasCodeChild = false
 
-            if let element = node as? Element {
+            if let element = n as? Element {
                 if let codeEl = try? element.select("code").first() {
                     hasCodeChild = true
                     language = extractCodeLanguage(from: element)
@@ -55,21 +52,17 @@ extension CommonmarkPlugin {
                 }
             }
 
-            if rawContent.hasSuffix("\n") {
-                rawContent = String(rawContent.dropLast())
-            }
-            if !hasCodeChild && rawContent.hasPrefix("\n") {
-                rawContent = String(rawContent.dropFirst())
-            }
+            if rawContent.hasSuffix("\n") { rawContent = String(rawContent.dropLast()) }
+            if !hasCodeChild && rawContent.hasPrefix("\n") { rawContent = String(rawContent.dropFirst()) }
 
             let maxRun = calculateMaxBacktickRun(in: rawContent, char: fenceChar)
             let fenceLen = max(3, maxRun + 1)
             let actualFence = String(repeating: fenceChar, count: fenceLen)
-
             let markedContent = rawContent.replacingOccurrences(of: "\n", with: String(codeBlockNewlineMarker))
 
-            return "\n\n\(actualFence)\(language)\n\(markedContent)\n\(actualFence)\n\n"
-        }
+            w.writeString("\n\n\(actualFence)\(language)\n\(markedContent)\n\(actualFence)\n\n")
+            return .success
+        }, priority: PriorityStandard)
     }
 }
 
@@ -87,7 +80,6 @@ private func calculateMaxBacktickRun(in text: String, char: Character) -> Int {
     return maxRun
 }
 
-/// Collapse whitespace inside inline code content (matches Go's CollapseInlineCodeContent).
 private func collapseInlineCodeContent(_ content: String) -> String {
     var result = content
         .replacingOccurrences(of: "\n", with: " ")

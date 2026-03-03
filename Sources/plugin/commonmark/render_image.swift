@@ -2,15 +2,14 @@ import Foundation
 import SwiftSoup
 
 extension CommonmarkPlugin {
-
-    func registerImageRenderers(converter: Converter) {
-        converter.registerRenderer("img") { [weak self] node, converter in
-            guard let element = node as? Element else { return nil }
-            guard let self = self else { return nil }
+    func registerImageRenderers(conv: Converter) {
+        conv.Register.rendererFor("img", .inline, { [weak self] ctx, w, n in
+            guard let element = n as? Element else { return .tryNext }
+            guard let self = self else { return .tryNext }
 
             let rawSrc = (try? element.attr("src")) ?? ""
-            let src = self.assembleAbsoluteURL(rawSrc, domain: converter.getOptions().baseDomain)
-            if src.isEmpty { return "" }
+            let src = defaultAssembleAbsoluteURL(rawSrc, domain: ctx.conv.domain.isEmpty ? nil : ctx.conv.domain)
+            if src.isEmpty { w.writeString(""); return .success }
 
             let rawAlt = ((try? element.attr("alt")) ?? "").replacingOccurrences(of: "\n", with: " ")
             let alt = escapeAltText(rawAlt)
@@ -22,15 +21,15 @@ extension CommonmarkPlugin {
                 .replacingOccurrences(of: "\r", with: " ")
 
             if title.isEmpty {
-                return "![\(alt)](\(src))"
+                w.writeString("![\(alt)](\(src))")
             } else {
-                return "![\(alt)](\(src) \(self.formatLinkTitle(title)))"
+                w.writeString("![\(alt)](\(src) \(self.formatLinkTitle(title)))")
             }
-        }
+            return .success
+        }, priority: PriorityStandard)
     }
 }
 
-/// Escape [ and ] characters in image alt text (matches Go's escapeAlt function)
 private func escapeAltText(_ alt: String) -> String {
     var result = ""
     let chars = Array(alt)

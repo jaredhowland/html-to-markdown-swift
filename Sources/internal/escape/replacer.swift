@@ -1,18 +1,19 @@
 import Foundation
 
-/// Mark potential escape candidates in text with a placeholder prefix.
-/// Only marks characters that could trigger markdown interpretation.
-func markEscapeCandidates(_ text: String) -> String {
-    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`", "=", ")"]
+func markEscapeCandidates(_ text: String, chars: Set<Character>) -> String {
     var result = ""
     result.reserveCapacity(text.count * 2)
-    for char in text {
-        if candidates.contains(char) {
-            result.append(escapePlaceholder)
-        }
-        result.append(char)
+    for ch in text {
+        if chars.contains(ch) { result.append(escapePlaceholder) }
+        result.append(ch)
     }
     return result
+}
+
+/// Legacy shim
+func markEscapeCandidates(_ text: String) -> String {
+    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`", "=", ")"]
+    return markEscapeCandidates(text, chars: candidates)
 }
 
 /// Post-render pass: inspect each placeholder in context and decide whether to emit `\`.

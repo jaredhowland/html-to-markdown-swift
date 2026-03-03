@@ -2,10 +2,10 @@ import Foundation
 import SwiftSoup
 
 extension CommonmarkPlugin {
-
-    func registerBreakRenderer(converter: Converter) {
-        converter.registerRenderer("br") { _, _ in
-            return "  \n"
-        }
+    func registerBreakRenderer(conv: Converter) {
+        conv.Register.rendererFor("br", .inline, { _, w, _ in
+            w.writeString("  \n")
+            return .success
+        }, priority: PriorityStandard)
     }
 }

@@ -1,20 +1,25 @@
 import Foundation
 import SwiftSoup
 
-/// Plugin for strikethrough text support (~~text~~)
 class StrikethroughPlugin: Plugin {
     var name: String { return "strikethrough" }
 
-    func initialize(conv converter: Converter) {
-        registerStrikethroughRenderers(converter: converter)
-    }
+    func initialize(conv: Converter) throws {
+        conv.Register.escapedChar("~")
 
-    private func registerStrikethroughRenderers(converter: Converter) {
+        conv.Register.unEscaper({ chars, idx in
+            guard idx < chars.count, chars[idx] == "~" else { return -1 }
+            return isFencedCodeContext(chars: chars, charIdx: idx) ? 1 : -1
+        }, priority: PriorityStandard)
+
         for tag in ["strike", "s", "del"] {
-            converter.registerRenderer(tag) { node, converter in
-                let content = try renderChildren(node, converter: converter)
-                return applyDelimiterPerLine(content, delimiter: "~~")
-            }
+            conv.Register.rendererFor(tag, .inline, { ctx, w, n in
+                let buf = StringWriter()
+                ctx.renderChildNodes(buf, n)
+                let content = applyDelimiterPerLine(buf.string, delimiter: "~~")
+                w.writeString(content)
+                return .success
+            }, priority: PriorityStandard)
         }
     }
 }
