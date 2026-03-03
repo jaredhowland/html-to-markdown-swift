@@ -732,4 +732,17 @@ class HTMLToMarkdownTests: XCTestCase {
     func testAdjacentBoldSpaceInSpanStopsMerge() throws {
         XCTAssertEqual(try convert("<p><strong>a</strong><span> <strong>b</strong></span></p>"), "**a** **b**")
     }
+
+    // MARK: - List Multi-Paragraph Indentation
+
+    func testListMultiParagraphBlankLineIndent() throws {
+        let result = try convert("<ul><li><p>text1</p><p>text2</p></li></ul>")
+        XCTAssertEqual(result, "- text1\n  \n  text2")
+    }
+
+    func testListBlockquoteItemIndent() throws {
+        let html = "<ul><li><p>Someone once said:</p><blockquote>My famous quote</blockquote><span>- someone</span></li></ul>"
+        let result = try convert(html)
+        XCTAssertEqual(result, "- Someone once said:\n  \n  > My famous quote\n  \n  \\- someone")
+    }
 }

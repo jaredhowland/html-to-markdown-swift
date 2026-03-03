@@ -814,7 +814,7 @@ private func renderListContainer(node: Node, converter: Converter, isOrdered: Bo
         let firstLine = "\(prefix)\(lines[0])"
         if lines.count > 1 {
             let rest = lines.dropFirst().map { line in
-                line.isEmpty ? "" : "\(indent)\(line)"
+                line.isEmpty ? indent : "\(indent)\(line)"
             }.joined(separator: "\n")
             result += "\(firstLine)\n\(rest)"
         } else {
