@@ -112,6 +112,7 @@ class CommonmarkPlugin: Plugin {
         try removeEmptyCode(document)
         try removeRedundantBoldItalic(document)
         try mergeAdjacentBoldItalic(document)
+        try swapTagsCodePre(document)
         try mergeAdjacentInlineCode(document)
         try addSpacesAroundEmphasisContainingCode(document)
     }
@@ -148,6 +149,48 @@ class CommonmarkPlugin: Plugin {
             try element.remove()
         }
     }
+
+    /// SwapTags(code, pre): if a code/var/samp/kbd/tt element's sole non-whitespace-text
+    /// child is a <pre>, swap their tag names so <code><pre>x</pre></code> becomes
+    /// <pre><code>x</code></pre>, which then renders as a fenced code block.
+    /// Matches Go's domutils.SwapTags(ctx, doc, nameIsInlineCode, nameIsPre).
+    private func swapTagsCodePre(_ doc: Document) throws {
+        let inlineCodeTags = ["code", "var", "samp", "kbd", "tt"]
+        func swapIn(_ node: Node) throws {
+            if let element = node as? Element, inlineCodeTags.contains(element.tagName()) {
+                let nonEmptyChildren = element.getChildNodes().filter { child in
+                    if let text = child as? TextNode {
+                        return !text.getWholeText().trimmingCharacters(in: .whitespaces).isEmpty
+                    }
+                    return true
+                }
+                if nonEmptyChildren.count == 1,
+                   let inner = nonEmptyChildren[0] as? Element,
+                   inner.tagName() == "pre" {
+                    // Swap tag names
+                    let outerTag = element.tagName()
+                    let innerTag = inner.tagName()
+                    try element.tagName(innerTag)
+                    try inner.tagName(outerTag)
+                    // Go's HTML5 parser strips the leading LF from <pre> start tag during
+                    // parsing (HTML5 spec). After swapping, the inner element (was <pre>)
+                    // would have had its leading \n stripped. We replicate that here.
+                    if let firstText = inner.getChildNodes().first as? TextNode {
+                        let t = firstText.getWholeText()
+                        if t.hasPrefix("\n") {
+                            try firstText.text(String(t.dropFirst()))
+                        }
+                    }
+                    return
+                }
+            }
+            for child in node.getChildNodes() {
+                try swapIn(child)
+            }
+        }
+        try swapIn(doc)
+    }
+
 
     /// Add spaces around bold/italic elements whose first/last child is inline code.
     /// Mirrors Go's domutils.AddSpace(ctx, doc, nameIsBoldOrItalic, nameIsInlineCode).
@@ -641,18 +684,30 @@ class CommonmarkPlugin: Plugin {
 
             var language = ""
             var rawContent = ""
+            var hasCodeChild = false
 
             if let element = node as? Element {
                 if let codeEl = try? element.select("code").first() {
-                    language = extractCodeLanguage(from: codeEl)
+                    hasCodeChild = true
+                    // Go's getCodeWithoutTags visits <pre> first, then <code> children.
+                    // So <pre>'s language class takes priority over <code>'s.
+                    language = extractCodeLanguage(from: element)
+                    if language.isEmpty { language = extractCodeLanguage(from: codeEl) }
                     rawContent = extractRawText(from: codeEl)
                 } else {
+                    language = extractCodeLanguage(from: element)
                     rawContent = extractRawText(from: element)
                 }
             }
 
             if rawContent.hasSuffix("\n") {
                 rawContent = String(rawContent.dropLast())
+            }
+            // HTML5 spec: a single leading newline after <pre> start tag is stripped.
+            // Go's HTML parser applies this only when text is directly inside <pre>,
+            // not when it's inside a nested <code> element.
+            if !hasCodeChild && rawContent.hasPrefix("\n") {
+                rawContent = String(rawContent.dropFirst())
             }
 
             let maxRun = calculateMaxBacktickRun(in: rawContent, char: fenceChar)
