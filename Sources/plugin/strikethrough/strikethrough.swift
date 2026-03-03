@@ -3,7 +3,9 @@ import SwiftSoup
 
 /// Plugin for strikethrough text support (~~text~~)
 class StrikethroughPlugin: Plugin {
-    func register(with converter: Converter) {
+    var name: String { return "strikethrough" }
+
+    func initialize(conv converter: Converter) {
         registerStrikethroughRenderers(converter: converter)
     }
 

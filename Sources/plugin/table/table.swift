@@ -49,13 +49,14 @@ public struct TableOptions {
 
 /// Plugin for GFM table support
 class TablePlugin: Plugin {
+    var name: String { return "table" }
     let options: TableOptions
 
     init(options: TableOptions = TableOptions()) {
         self.options = options
     }
 
-    func register(with converter: Converter) {
+    func initialize(conv converter: Converter) {
         converter.registerTagType("td", type: .inline, priority: .standard)
         converter.registerTagType("th", type: .inline, priority: .standard)
 

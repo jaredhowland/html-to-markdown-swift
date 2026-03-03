@@ -3,8 +3,10 @@ import SwiftSoup
 
 /// Protocol for plugins that extend the conversion behavior
 public protocol Plugin {
-    /// Register the plugin with the converter
-    func register(with converter: Converter)
+    /// The public name of the plugin, e.g. "base", "commonmark", "strikethrough", "table"
+    var name: String { get }
+    /// Initialize the plugin — registers handlers, validates config, etc. (mirrors Go's Init)
+    func initialize(conv: Converter)
     /// Handle document-level pre-render phase (called once on the full document)
     func handleDocumentPreRender(document: Document, converter: Converter) throws
     /// Handle pre-render phase (before main rendering)
@@ -19,6 +21,7 @@ public protocol Plugin {
 
 /// Default implementation providing optional handlers
 extension Plugin {
+    public var name: String { return "" }
     public func handleDocumentPreRender(document: Document, converter: Converter) throws {}
     public func handlePreRender(node: Node, converter: Converter) throws {}
     public func handleRender(node: Node, converter: Converter) throws -> String? { return nil }

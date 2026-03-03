@@ -38,7 +38,7 @@ public class Converter {
         // Register plugins first, then process options so that custom renderers
         // from options can override plugin defaults.
         for plugin in plugins {
-            plugin.register(with: self)
+            plugin.initialize(conv: self)
         }
 
         processOptions(options)

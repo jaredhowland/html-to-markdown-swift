@@ -3,6 +3,7 @@ import SwiftSoup
 
 /// Plugin implementing CommonMark Markdown specification
 class CommonmarkPlugin: Plugin {
+    var name: String { return "commonmark" }
     let options: CommonmarkOptions
     var validationError: Error?
 
@@ -15,7 +16,18 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
-    func register(with converter: Converter) {
+    func initialize(conv converter: Converter) {
+        // Skip initialization if config validation already failed
+        guard validationError == nil else { return }
+
+        // Check that base plugin is registered (mirrors Go's base plugin check in Init())
+        guard converter.plugins.contains(where: { $0.name == "base" }) else {
+            validationError = ConversionError.pluginError(
+                #"you registered the "commonmark" plugin but the "base" plugin is also required"#
+            )
+            return
+        }
+
         registerBoldItalicRenderers(converter: converter)
         registerLinkRenderers(converter: converter)
         registerImageRenderers(converter: converter)
@@ -30,7 +42,7 @@ class CommonmarkPlugin: Plugin {
 
     func handlePreRender(node: Node, converter: Converter) throws {
         if let err = validationError {
-            throw ConversionError.pluginError("error while initializing \"commonmark\" plugin: \(err.localizedDescription)")
+            throw err
         }
     }
 

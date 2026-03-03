@@ -3,7 +3,9 @@ import SwiftSoup
 
 /// Base plugin that provides fundamental HTML to Markdown conversion
 class BasePlugin: Plugin {
-    func register(with converter: Converter) {
+    var name: String { return "base" }
+
+    func initialize(conv converter: Converter) {
         let blockTags = [
             "div", "p", "article", "section", "header", "footer", "main", "nav",
             "blockquote", "pre", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
