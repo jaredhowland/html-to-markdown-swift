@@ -53,6 +53,10 @@ func applySmartEscaping(_ markdown: String) -> String {
 private func shouldEscape(chars: [Character], at placeholderIdx: Int, char: Character) -> Bool {
     let charIdx = placeholderIdx + 1
     switch char {
+    case "\\":
+        return true
+    case "`":
+        return true
     case "#":
         return isAtxHeaderContext(chars: chars, charIdx: charIdx)
     case "-":
@@ -96,12 +100,14 @@ private func isAtxHeaderContext(chars: [Character], charIdx: Int) -> Bool {
     return chars[j] == " " || chars[j] == "\t" || chars[j] == "\n"
 }
 
-/// Returns true if `-`, `*`, or `+` at charIdx is at start of line followed by space
+/// Returns true if `-`, `*`, or `+` at charIdx is at start of line followed by space,
+/// newline, or end of string (matching Go's IsUnorderedList which uses IsSpace which
+/// includes '\n', and also checks for next==0/EOF).
 private func isUnorderedListContext(chars: [Character], charIdx: Int) -> Bool {
     if !isAtStartOfLine(chars: chars, idx: charIdx) { return false }
     let next = charIdx + 1
-    if next >= chars.count { return false }
-    return chars[next] == " " || chars[next] == "\t"
+    if next >= chars.count { return true } // EOF: escape
+    return chars[next] == " " || chars[next] == "\t" || chars[next] == "\n"
 }
 
 /// Returns true if `.` at charIdx is part of `N.` ordered list at start of line
@@ -158,8 +164,9 @@ private func isSetextHeaderContext(chars: [Character], charIdx: Int) -> Bool {
     return false
 }
 
-/// Returns true if `*` or `_` at charIdx would form emphasis.
-/// Escape when left-flanking (followed by non-whitespace) or right-flanking (preceded by non-whitespace).
+/// Returns true if `*` or `_` at charIdx would form left-flanking emphasis run.
+/// Only escapes left-flanking delimiters (followed by non-whitespace), matching Go's
+/// IsItalicOrBold which does NOT escape right-flanking (closing) delimiters.
 private func isEmphasisContext(chars: [Character], charIdx: Int) -> Bool {
     let nextIdx = charIdx + 1
     if nextIdx < chars.count {
@@ -168,16 +175,6 @@ private func isEmphasisContext(chars: [Character], charIdx: Int) -> Bool {
             return true
         }
     }
-
-    // Check if preceded by non-whitespace (right-flanking: closing emphasis)
-    let prevIdx = charIdx - 2 // charIdx-1 is the placeholder
-    if prevIdx >= 0 {
-        let prevChar = chars[prevIdx]
-        if prevChar != escapePlaceholder && !prevChar.isWhitespace {
-            return true
-        }
-    }
-
     return false
 }
 

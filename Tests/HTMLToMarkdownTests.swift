@@ -489,9 +489,10 @@ class HTMLToMarkdownTests: XCTestCase {
     }
 
     func testEscapeAsteriskEmphasis() throws {
-        // *word* would be emphasis — escape the *
+        // *word* would form emphasis — only escape the opening left-flanking *
+        // (matching Go's IsItalicOrBold which only escapes left-flanking delimiters)
         let result = try convert("<p>text *emphasis* more</p>")
-        XCTAssertEqual(result, "text \\*emphasis\\* more")
+        XCTAssertEqual(result, "text \\*emphasis* more")
     }
 
     // MARK: - Whitespace Collapsing

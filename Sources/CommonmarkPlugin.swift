@@ -810,7 +810,13 @@ class CommonmarkPlugin: Plugin {
             let beforeLast = s.index(s.endIndex, offsetBy: -2)
             if s[beforeLast] == "\\" { return s }
         }
-        return String(s.dropLast()) + "\\#"
+        // Drop the # and also any trailing escape placeholder that was marking it,
+        // to prevent the placeholder from accidentally matching the \ in our appended \#.
+        var result = String(s.dropLast())
+        if result.last == escapePlaceholder {
+            result = String(result.dropLast())
+        }
+        return result + "\\#"
     }
 
     // MARK: - Divider Rendering
