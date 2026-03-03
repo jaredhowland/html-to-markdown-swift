@@ -23,22 +23,6 @@ class GoldenFileTests: XCTestCase {
         let trimResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimExpected = expected.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        if trimResult != trimExpected {
-            print("\n=== DIFF for \(description) ===")
-            let resultLines = trimResult.components(separatedBy: "\n")
-            let expectedLines = trimExpected.components(separatedBy: "\n")
-            let maxLines = max(resultLines.count, expectedLines.count)
-            for i in 0..<maxLines {
-                let r = i < resultLines.count ? resultLines[i] : "<MISSING>"
-                let e = i < expectedLines.count ? expectedLines[i] : "<MISSING>"
-                if r != e {
-                    print("Line \(i+1):")
-                    print("  Expected: \(e.debugDescription)")
-                    print("  Got:      \(r.debugDescription)")
-                }
-            }
-        }
-
         XCTAssertEqual(trimResult, trimExpected, "Golden file mismatch: \(description)")
     }
 
