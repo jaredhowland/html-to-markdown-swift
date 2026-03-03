@@ -261,6 +261,43 @@ tags:
 {markdown content}
 ```
 
+#### AtlassianPlugin
+
+Targets [Bitbucket/Atlassian Markdown](https://confluence.atlassian.com/bitbucketserver/markdown-syntax-guide-776639995.html). Bundles `StrikethroughPlugin` and `TablePlugin`, and adds:
+
+```swift
+let conv = Converter()
+try conv.Register.plugin(BasePlugin())
+try conv.Register.plugin(CommonmarkPlugin())
+try conv.Register.plugin(AtlassianPlugin())  // Includes strikethrough, tables, autolinks, image sizing
+```
+
+> **Note:** `AtlassianPlugin` bundles `StrikethroughPlugin` and `TablePlugin`, so you don't need to register those separately.
+
+Supported features:
+- **Autolinks**: `<a href="url">url</a>` where link text equals the href → bare URL (Atlassian auto-detects URLs)
+- **Image sizing**: `<img width="640" height="480">` → `![alt](src){width=640 height=480}`
+
+#### MultiMarkdownPlugin
+
+Targets [MultiMarkdown 4](https://fletcher.github.io/MultiMarkdown-4/MMD_Users_Guide.html). Bundles `StrikethroughPlugin` and `TablePlugin`, and adds:
+
+```swift
+let conv = Converter()
+try conv.Register.plugin(BasePlugin())
+try conv.Register.plugin(CommonmarkPlugin())
+try conv.Register.plugin(MultiMarkdownPlugin())  // Includes strikethrough, tables, MMD-specific syntax
+```
+
+> **Note:** `MultiMarkdownPlugin` bundles `StrikethroughPlugin` and `TablePlugin`, so you don't need to register those separately.
+
+Supported features:
+- **Subscript/Superscript**: `<sub>text</sub>` → `~text~`, `<sup>text</sup>` → `^text^`
+- **Definition lists**: `<dl>/<dt>/<dd>` → MMD format (plain term + `:   definition`)
+- **Image attributes**: `<img width="640" height="480">` → `![alt](src){width=640px height=480px}`
+- **Figure/Figcaption**: `<figure>` treated as block; `<figcaption>` suppressed (caption is in `alt`)
+- **Footnotes**: `<a class="footnote" href="#fn:1">` → `[^1]`; `<div class="footnotes">` → `[^1]: text` at bottom
+
 ## Converter Options
 
 ### Domain Resolution
