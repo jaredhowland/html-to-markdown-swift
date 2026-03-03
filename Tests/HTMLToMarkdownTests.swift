@@ -431,6 +431,22 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "[content](/ \"link title\")")
     }
 
+    // MARK: - Consecutive Lists Separator
+
+    func testConsecutiveListsWithStarMarkerGetsEndComment() throws {
+        var opts = CommonmarkOptions()
+        opts.bulletListMarker = "*"
+        let html = "<ul><li>list a</li></ul><ul><li>list b</li></ul>"
+        let result = try convertPlugins(html, options: opts)
+        XCTAssertEqual(result, "* list a\n\n<!--THE END-->\n\n* list b")
+    }
+
+    func testConsecutiveListsWithDashMarkerNoEndComment() throws {
+        let html = "<ul><li>list a</li></ul><ul><li>list b</li></ul>"
+        let result = try convert(html)
+        XCTAssertFalse(result.contains("<!--THE END-->"))
+    }
+
     // MARK: - Performance
 
     func testLargeHTML() throws {

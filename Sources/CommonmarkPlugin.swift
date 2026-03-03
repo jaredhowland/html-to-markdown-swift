@@ -286,7 +286,15 @@ class CommonmarkPlugin: Plugin {
         converter.registerRenderer("ul") { [weak self] node, converter in
             guard let self = self else { return nil }
             let marker = self.options.bulletListMarker
-            return try renderListContainer(node: node, converter: converter, isOrdered: false, marker: marker, startAt: 1)
+            var result = try renderListContainer(node: node, converter: converter, isOrdered: false, marker: marker, startAt: 1)
+            if marker == "*", let element = node as? Element {
+                let nextTag = try? element.nextElementSibling()?.tagName()
+                if nextTag == "ul" || nextTag == "ol" {
+                    result = result.replacingOccurrences(of: "\\n+$", with: "", options: .regularExpression)
+                    result += "\n\n<!--THE END-->"
+                }
+            }
+            return result
         }
 
         converter.registerRenderer("ol") { node, converter in
