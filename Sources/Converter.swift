@@ -45,6 +45,10 @@ public class Converter {
     /// Convert an HTML string to Markdown
     func convertString(_ html: String) throws -> String {
         let document = try SwiftSoup.parse(html)
+
+        // Pre-render: collapse HTML whitespace
+        try collapseHTMLWhitespace(document)
+
         var result = try convertNode(document)
         result = applySmartEscaping(result)
         return result

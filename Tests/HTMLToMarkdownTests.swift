@@ -481,6 +481,26 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "text \\*emphasis\\* more")
     }
 
+    // MARK: - Whitespace Collapsing
+
+    func testWhitespaceCollapseMultipleSpaces() throws {
+        // Multiple spaces between words collapse to one
+        let result = try convert("<p>word1  word2   word3</p>")
+        XCTAssertEqual(result, "word1 word2 word3")
+    }
+
+    func testWhitespaceCollapseNewlinesBetweenInline() throws {
+        // Newlines in inline content collapse to space
+        let result = try convert("<p>word1\nword2</p>")
+        XCTAssertEqual(result, "word1 word2")
+    }
+
+    func testWhitespaceCollapseAroundInlineElements() throws {
+        // Spaces around inline elements are preserved (one space each side)
+        let result = try convert("<p>some  <b>  bold  </b>  text</p>")
+        XCTAssertEqual(result, "some **bold** text")
+    }
+
     // MARK: - Performance
 
     func testLargeHTML() throws {
