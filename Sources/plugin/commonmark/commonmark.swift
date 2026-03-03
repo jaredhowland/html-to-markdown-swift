@@ -73,6 +73,18 @@ class CommonmarkPlugin: Plugin {
         }, priority: PriorityStandard)
 
         conv.Register.unEscaper({ chars, idx in
+            guard idx < chars.count, chars[idx] == "!" else { return -1 }
+            let nextIdx = idx + 1
+            guard nextIdx < chars.count, chars[nextIdx] == "[" else { return -1 }
+            return 1
+        }, priority: PriorityStandard)
+
+        conv.Register.unEscaper({ chars, idx in
+            guard idx < chars.count, chars[idx] == ">" else { return -1 }
+            return isAtStartOfLine(chars: chars, idx: idx) ? 1 : -1
+        }, priority: PriorityStandard)
+
+        conv.Register.unEscaper({ chars, idx in
             guard idx < chars.count else { return -1 }
             let ch = chars[idx]
             if ch == "`" { return !isSubsequentFencedBacktick(chars: chars, charIdx: idx) ? 1 : -1 }
