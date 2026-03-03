@@ -688,20 +688,17 @@ class CommonmarkPlugin: Plugin {
 
 // MARK: - Helpers
 
-private func applyDelimiterPerLine(_ content: String, delimiter: String) -> String {
-    let trimmed = content.trimmingCharacters(in: .whitespaces)
-    // When content is all whitespace, preserve it (Go: leftExtra is written, no delimiter added)
-    if trimmed.isEmpty { return content }
-
-    if !trimmed.contains("\n") {
-        return "\(delimiter)\(trimmed)\(delimiter)"
-    }
-
-    let lines = trimmed.components(separatedBy: "\n")
+func applyDelimiterPerLine(_ content: String, delimiter: String) -> String {
+    let lines = content.components(separatedBy: "\n")
     return lines.map { line in
-        let t = line.trimmingCharacters(in: .whitespaces)
-        if t.isEmpty { return "" }
-        return "\(delimiter)\(t)\(delimiter)"
+        let leftExtra = String(line.prefix(while: { $0.isWhitespace }))
+        let withoutLeft = String(line.dropFirst(leftExtra.count))
+        let rightExtra = String(withoutLeft.reversed().prefix(while: { $0.isWhitespace }).reversed())
+        let trimmed = String(withoutLeft.dropLast(rightExtra.count))
+        if trimmed.isEmpty {
+            return leftExtra + rightExtra
+        }
+        return "\(leftExtra)\(delimiter)\(trimmed)\(delimiter)\(rightExtra)"
     }.joined(separator: "\n")
 }
 
