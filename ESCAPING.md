@@ -25,9 +25,14 @@ let markdown2 = try HTMLToMarkdown.convert(html2)
 |---------|--------|------------------------|
 | `# ` at start of line | ATX heading | `# text` → `\# text` |
 | `- `, `* `, `+ ` at start of line | Unordered list | `- item` → `\- item` |
-| `1. ` at start of line | Ordered list | `1. item` → `1\. item` |
+| `1. ` or `1) ` at start of line | Ordered list | `1. item` → `1\. item`, `1) item` → `1\) item` |
+| `---`, `___`, `* * *`, `_ _ _` etc. | Thematic break | `---` → `\---` |
+| `===` or `---` line after content | Setext heading | `===` line after text |
 | `*word` or `_word` (no trailing space) | Emphasis | `*word*` → `\*word\*` |
-| All-`=` or all-`-` line after content | Setext heading | `===` line after text |
+| `` ``` `` or `~~~` at start of line | Fenced code block | `` ``` `` → `` \``` `` |
+| `` ` `` anywhere | Inline code | `` `code` `` → `` \`code\` `` |
+| `[text]` | Link syntax | `[text]` → `\[text]` |
+| `\` backslash | Escape character | `\n` → `\\n` |
 
 ## When Characters Are NOT Escaped
 

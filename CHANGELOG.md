@@ -5,7 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.5.0] - 2026-03-02
+## [2.5.1] - 2026-03-03
+
+### Fixed
+
+- **Smart escaping**: `1)` at start of line is now escaped as `1\)` (Go parity for ordered lists using parenthesis delimiter)
+- **Smart escaping**: `~~~` at start of line is now escaped as `\~~~` (Go parity for tilde fenced code blocks)
+- **Smart escaping**: Standalone `---` is now escaped as `\---` (Go parity for thematic break/divider)
+- **Smart escaping**: `_ _ _` pattern is now escaped as `\_ _ _` (Go parity for underscore thematic break)
+- **Smart escaping**: Opening `` ``` `` fence only escapes the first backtick (matches Go's IsFencedCode skip behaviour)
+
 
 ### Added
 
