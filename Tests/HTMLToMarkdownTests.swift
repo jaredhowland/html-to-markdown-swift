@@ -376,13 +376,22 @@ class HTMLToMarkdownTests: XCTestCase {
     }
 
     func testEmptyBoldInParagraph() throws {
-        let result = try convert("<p>some <strong></strong> text</p>")
-        XCTAssertFalse(result.contains("**"))
-        XCTAssertTrue(result.contains("some") && result.contains("text"))
+        // Empty bold in paragraph context: surrounding spaces collapse to one
+        XCTAssertEqual(try convert("<p>some <strong></strong> text</p>"), "some text")
+    }
+
+    func testEmptyBoldWhitespace() throws {
+        // Bold with only whitespace content: behaves same as empty, surrounding spaces collapse
+        XCTAssertEqual(try convert("<p>some <strong> </strong> text</p>"), "some text")
     }
 
     func testEmptyItalic() throws {
         XCTAssertEqual(try convert("<em></em>"), "")
+    }
+
+    func testEmptyItalicInParagraph() throws {
+        // Empty italic in paragraph context: surrounding spaces collapse to one
+        XCTAssertEqual(try convert("<p>some <em></em> text</p>"), "some text")
     }
 
     // MARK: - Edge Cases
@@ -499,6 +508,18 @@ class HTMLToMarkdownTests: XCTestCase {
         // Spaces around inline elements are preserved (one space each side)
         let result = try convert("<p>some  <b>  bold  </b>  text</p>")
         XCTAssertEqual(result, "some **bold** text")
+    }
+
+    func testWhitespaceCollapseNoSpaceBetweenInline() throws {
+        // No space between adjacent inline elements = no space in output
+        let result = try convert("<p>some<b>bold</b>text</p>")
+        XCTAssertEqual(result, "some**bold**text")
+    }
+
+    func testWhitespaceCollapseAroundBlock() throws {
+        // Whitespace-only text nodes adjacent to block elements are removed
+        let result = try convert("<div>  <p>text</p>  </div>")
+        XCTAssertEqual(result, "text")
     }
 
     // MARK: - Performance

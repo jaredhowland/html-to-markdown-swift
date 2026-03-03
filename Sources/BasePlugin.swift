@@ -71,7 +71,7 @@ class BasePlugin: Plugin {
 
         switch tagType {
         case .block:
-            return trimConsecutiveNewlines("\n\n\(children)\n\n")
+            return trimConsecutiveNewlines("\n\n\(collapseInlineSpaces(children))\n\n")
         case .inline:
             return children
         case .remove:
@@ -86,7 +86,7 @@ class BasePlugin: Plugin {
         for tag in ["#document", "div", "section", "article", "main", "header", "footer", "p"] {
             converter.registerRenderer(tag) { node, converter in
                 let children = try renderChildren(node, converter: converter)
-                return trimConsecutiveNewlines("\n\n\(children)\n\n")
+                return trimConsecutiveNewlines("\n\n\(collapseInlineSpaces(children))\n\n")
             }
         }
     }
@@ -110,6 +110,18 @@ func collapseWhitespace(_ text: String) -> String {
         return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: " ").trimmingCharacters(in: .whitespaces)
     }
     return text.trimmingCharacters(in: .whitespaces)
+}
+
+/// Collapse runs of 2+ consecutive spaces that are not part of a Markdown hard line break ("  \n").
+/// Used in block element renderers to normalize spaces left behind by empty inline elements.
+func collapseInlineSpaces(_ text: String) -> String {
+    // Pattern: 2+ spaces not preceded by \n (to protect indentation) and not followed by \n (to protect "  \n" hard breaks)
+    let pattern = "(?<!\\n)  +(?!\\n)"
+    if let regex = try? NSRegularExpression(pattern: pattern) {
+        let range = NSRange(text.startIndex..., in: text)
+        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: " ")
+    }
+    return text
 }
 
 // MARK: - Public renderer helpers (for plugin authors)
