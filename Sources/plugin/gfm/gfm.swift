@@ -23,7 +23,7 @@ public class GFMPlugin: Plugin {
         // the "[x] " / "[ ] " prefix is written directly to the output writer and bypasses
         // text-transformation escaping (which would turn "[" into "\[").
         conv.Register.preRenderer({ ctx, doc in
-            guard let checkboxes = try? doc.select("li > input[type=checkbox]") else { return }
+            guard let checkboxes = try? doc.select("li input[type=checkbox]") else { return }
             for input in checkboxes {
                 let checked = input.hasAttr("checked")
                 let placeholder = try? Element(Tag.valueOf("gfm-task-checkbox"), "")
