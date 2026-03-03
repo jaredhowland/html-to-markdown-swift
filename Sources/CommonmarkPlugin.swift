@@ -336,8 +336,8 @@ class CommonmarkPlugin: Plugin {
         let boldContent = applyDelimiterPerLine(linkContentEscaped, delimiter: delimiter)
         let trimmedBold = boldContent.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        let leftPad = String(linkContentEscaped.prefix(while: { $0 == " " }))
-        let rightPad = String(linkContentEscaped.reversed().prefix(while: { $0 == " " }).reversed())
+        let leftPad = String(linkContentEscaped.prefix(while: { $0.isWhitespace }))
+        let rightPad = String(linkContentEscaped.reversed().prefix(while: { $0.isWhitespace }).reversed())
 
         if title.isEmpty {
             return "\(leftPad)[\(trimmedBold)](\(href))\(rightPad)"
@@ -461,19 +461,24 @@ class CommonmarkPlugin: Plugin {
             let content = try renderChildren(node, converter: converter)
             // Force-escape ] inside link text to prevent premature link closing
             let contentEscaped = content.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
-            let trimmedContent = contentEscaped.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            if trimmedContent.isEmpty && self.options.linkEmptyContentBehavior == .skip {
+            // Extract surrounding whitespace (matches Go's SurroundingSpaces)
+            let leftPad = String(contentEscaped.prefix(while: { $0.isWhitespace }))
+            let withoutLeft = String(contentEscaped.drop(while: { $0.isWhitespace }))
+            let rightPad = String(withoutLeft.reversed().prefix(while: { $0.isWhitespace }).reversed())
+            var innerContent = String(withoutLeft.dropLast(rightPad.count))
+
+            if innerContent.isEmpty && self.options.linkEmptyContentBehavior == .skip {
                 return ""
             }
 
-            let leftPad = String(contentEscaped.prefix(while: { $0 == " " }))
-            let rightPad = String(contentEscaped.reversed().prefix(while: { $0 == " " }).reversed())
+            innerContent = trimConsecutiveNewlines(innerContent)
+            innerContent = escapeMultiLine(innerContent)
 
             if title.isEmpty {
-                return "\(leftPad)[\(trimmedContent)](\(href))\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(href))\(rightPad)"
             } else {
-                return "\(leftPad)[\(trimmedContent)](\(href) \(self.formatLinkTitle(title)))\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(href) \(self.formatLinkTitle(title)))\(rightPad)"
             }
         }
     }
@@ -636,11 +641,12 @@ class CommonmarkPlugin: Plugin {
                 if trimmed.isEmpty { return "" }
 
                 if self.options.headingStyle == .setext && level <= 2 {
-                    let lines = trimmed.components(separatedBy: "\n")
+                    let escaped = escapeMultiLine(trimmed)
+                    let lines = escaped.components(separatedBy: "\n")
                     let maxWidth = max(3, lines.map { $0.count }.max() ?? 3)
                     let underlineChar: Character = level == 1 ? "=" : "-"
                     let underline = String(repeating: underlineChar, count: maxWidth)
-                    return "\n\n\(trimmed)\n\(underline)\n\n"
+                    return "\n\n\(escaped)\n\(underline)\n\n"
                 } else {
                     let flat = trimmed
                         .replacingOccurrences(of: "\n", with: " ")
@@ -702,6 +708,33 @@ func applyDelimiterPerLine(_ content: String, delimiter: String) -> String {
         }
         return "\(leftExtra)\(delimiter)\(trimmed)\(delimiter)\(rightExtra)"
     }.joined(separator: "\n")
+}
+
+/// Convert multi-line inline content to use Markdown hard line breaks,
+/// matching Go's EscapeMultiLine.
+func escapeMultiLine(_ content: String) -> String {
+    let lines = content.components(separatedBy: "\n")
+    guard lines.count > 1 else { return content }
+
+    var output = ""
+    for (i, line) in lines.enumerated() {
+        let trimmedLeft = String(line.drop(while: { $0.isWhitespace }))
+
+        if trimmedLeft.isEmpty {
+            output += "\\\n"
+            continue
+        }
+
+        let isLast = (i == lines.count - 1)
+        if isLast {
+            output += trimmedLeft
+        } else if trimmedLeft.hasSuffix("  ") {
+            output += trimmedLeft + "\n"
+        } else {
+            output += trimmedLeft + "  \n"
+        }
+    }
+    return output
 }
 
 func extractCodeLanguage(from element: Element) -> String {
