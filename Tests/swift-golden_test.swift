@@ -72,6 +72,7 @@ class GoldenFileTests: XCTestCase {
                       options: commonmarkOptions,
                       description: "commonmark/image")
     }
+
     func testCommonmarkLink() {
         let base = "\(goldenBase)/plugin/commonmark/testdata/GoldenFiles/link"
         runGoldenFile(inputPath: "\(base).in.html", expectedPath: "\(base).out.md",
