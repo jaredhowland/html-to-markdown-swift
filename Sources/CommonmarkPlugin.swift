@@ -558,6 +558,10 @@ class CommonmarkPlugin: Plugin {
                 .replacingOccurrences(of: "\n", with: " ")
                 .replacingOccurrences(of: "\r", with: " ")
 
+            // Go: when href is empty, title is invalid/dropped
+            var effectiveTitle = title
+            if href.isEmpty { effectiveTitle = "" }
+
             // SwapTags(link, heading): if sole non-whitespace child is a heading,
             // render as heading containing the link: `## [content](href)`
             let nonWsChildren = element.getChildNodes().filter { child in
@@ -573,9 +577,9 @@ class CommonmarkPlugin: Plugin {
                     let hContent = try renderChildren(headingEl, converter: converter)
                     let hContentEscaped = hContent.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
                     let trimmedH = hContentEscaped.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let linkMd = title.isEmpty
+                    let linkMd = effectiveTitle.isEmpty
                         ? "[\(trimmedH)](\(href))"
-                        : "[\(trimmedH)](\(href) \(self.formatLinkTitle(title)))"
+                        : "[\(trimmedH)](\(href) \(self.formatLinkTitle(effectiveTitle)))"
                     if self.options.headingStyle == .setext && level <= 2 {
                         let underlineChar: Character = level == 1 ? "=" : "-"
                         let underline = String(repeating: underlineChar, count: max(3, trimmedH.count))
@@ -604,10 +608,10 @@ class CommonmarkPlugin: Plugin {
             innerContent = trimConsecutiveNewlines(innerContent)
             innerContent = escapeMultiLine(innerContent)
 
-            if title.isEmpty {
+            if effectiveTitle.isEmpty {
                 return "\(leftPad)[\(innerContent)](\(href))\(rightPad)"
             } else {
-                return "\(leftPad)[\(innerContent)](\(href) \(self.formatLinkTitle(title)))\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(href) \(self.formatLinkTitle(effectiveTitle)))\(rightPad)"
             }
         }
     }
