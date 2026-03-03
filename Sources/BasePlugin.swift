@@ -92,14 +92,43 @@ class BasePlugin: Plugin {
     }
 }
 
-/// Trim 3+ consecutive newlines down to 2
+/// Trim consecutive newlines to at most 2, matching Go's TrimConsecutiveNewlines algorithm.
+/// Spaces before a newline are consumed as part of that newline's sequence.
+/// When a third or more newline is encountered, the excess newlines and their preceding spaces are dropped.
 func trimConsecutiveNewlines(_ text: String) -> String {
-    let pattern = "\n{3,}"
-    if let regex = try? NSRegularExpression(pattern: pattern) {
-        let range = NSRange(text.startIndex..., in: text)
-        return regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "\n\n")
+    var result = ""
+    result.reserveCapacity(text.count)
+    var spaceBuffer = ""
+    var newlineCount = 0
+
+    for ch in text {
+        if ch == "\n" {
+            newlineCount += 1
+            if newlineCount <= 2 {
+                result.append(contentsOf: spaceBuffer)
+                result.append(ch)
+            }
+            spaceBuffer = ""
+        } else if ch == " " {
+            spaceBuffer.append(ch)
+        } else {
+            newlineCount = 0
+            result.append(contentsOf: spaceBuffer)
+            result.append(ch)
+            spaceBuffer = ""
+        }
     }
-    return text
+    result.append(contentsOf: spaceBuffer)
+    return result
+}
+
+/// Remove hard line breaks ("  \n") immediately before empty lines, matching Go's TrimUnnecessaryHardLineBreaks.
+func trimUnnecessaryHardLineBreaks(_ text: String) -> String {
+    var result = text
+    result = result.replacingOccurrences(of: "  \n\n", with: "\n\n")
+    result = result.replacingOccurrences(of: "  \n  \n", with: "\n\n")
+    result = result.replacingOccurrences(of: "  \n \n", with: "\n\n")
+    return result
 }
 
 /// Collapse inline whitespace (multiple spaces/tabs to single space)
