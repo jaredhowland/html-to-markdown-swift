@@ -49,6 +49,7 @@ coverage/
 
 # Documentation
 docs/_build/
+html-to-markdown-main/
 .documentation/
 
 # Temporary files
