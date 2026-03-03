@@ -49,6 +49,11 @@ public class Converter {
         // Pre-render: collapse HTML whitespace
         try collapseHTMLWhitespace(document)
 
+        // Pre-render: document-level plugin transformations
+        for plugin in plugins {
+            try plugin.handleDocumentPreRender(document: document, converter: self)
+        }
+
         var result = try convertNode(document)
         if getOptions().escapeMode != .disabled {
             result = applySmartEscaping(result)
