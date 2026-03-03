@@ -9,5 +9,7 @@ public class MarkdownExtraPlugin: Plugin {
         try conv.Register.plugin(StrikethroughPlugin())
         try conv.Register.plugin(TablePlugin())
         registerDefinitionLists(conv: conv)
+        registerFootnotes(conv: conv)
+        registerHeaderIds(conv: conv)
     }
 }

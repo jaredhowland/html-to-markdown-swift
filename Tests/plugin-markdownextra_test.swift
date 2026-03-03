@@ -39,4 +39,46 @@ class MarkdownExtraPluginTests: XCTestCase {
         XCTAssertTrue(result.contains(":   Fruit"), "Expected Fruit definition in: \(result)")
         XCTAssertTrue(result.contains(":   Citrus fruit"), "Expected Orange definition in: \(result)")
     }
+
+    // MARK: - Footnotes
+
+    func testFootnoteInlineRef() throws {
+        let html = """
+        <p>Text with footnote.<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup></p>
+        <div class="footnotes"><ol><li id="fn:1">The footnote text.</li></ol></div>
+        """
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("[^1]"), "Expected footnote ref in: \(result)")
+        XCTAssertTrue(result.contains("[^1]: The footnote text."), "Expected footnote def in: \(result)")
+    }
+
+    func testFootnoteDefRemovedFromBody() throws {
+        let html = """
+        <p>Text.<sup><a href="#fn:note" class="footnote">1</a></sup></p>
+        <div class="footnotes"><ol><li id="fn:note">Note text.</li></ol></div>
+        """
+        let result = try convert(html)
+        XCTAssertFalse(result.contains("<div"), "Should not contain raw HTML div in: \(result)")
+        XCTAssertTrue(result.contains("[^note]: Note text."), "Expected footnote def in: \(result)")
+    }
+
+    // MARK: - Header IDs
+
+    func testHeadingWithId() throws {
+        let html = "<h2 id=\"section-one\">Section One</h2>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("## Section One {#section-one}"), "Expected heading with ID in: \(result)")
+    }
+
+    func testHeadingWithoutId() throws {
+        let html = "<h2>No ID here</h2>"
+        let result = try convert(html)
+        XCTAssertFalse(result.contains("{#"), "Should not add ID syntax when no id attr in: \(result)")
+    }
+
+    func testH1WithId() throws {
+        let html = "<h1 id=\"top\">Top</h1>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("# Top {#top}"), "Expected h1 with ID in: \(result)")
+    }
 }
