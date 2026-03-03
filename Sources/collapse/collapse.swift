@@ -12,13 +12,6 @@ let htmlBlockTags: Set<String> = [
     "body", "html", "head",
 ]
 
-/// Tags that are preformatted (whitespace preserved inside them).
-/// Matches Go's defaultIsPreformattedNode which returns true for "pre" and "code".
-private let preformattedTags: Set<String> = ["pre", "code", "script", "style"]
-
-/// Inline void/replaced elements (not <br> — handled as block-like for whitespace)
-private let inlineVoidTags: Set<String> = ["img", "input", "select", "textarea"]
-
 /// Collapse whitespace in HTML document following Go's collapse.Collapse algorithm exactly.
 /// Mirrors the Go library's DFS traversal that visits elements on both entry and exit.
 func collapseHTMLWhitespace(_ document: Document) throws {
@@ -119,37 +112,4 @@ private func trimTrailingSpace(_ prevText: inout TextNode?) throws {
         }
     }
     prevText = nil
-}
-
-private func isPreformatted(_ element: Element) -> Bool {
-    return preformattedTags.contains(element.tagName().lowercased())
-}
-
-/// Returns true if node is a block-level element or absent (nil = boundary)
-func isBlockNode(_ node: Node?) -> Bool {
-    guard let node = node else { return true }
-    if let element = node as? Element {
-        return htmlBlockTags.contains(element.tagName().lowercased())
-    }
-    return false
-}
-
-/// Collapse consecutive whitespace characters (space, tab, newline, CR) to a single space.
-/// Matches Go's replaceAnyWhitespaceWithSpace.
-private func replaceAnyWhitespaceWithSpace(_ text: String) -> String {
-    var result = ""
-    result.reserveCapacity(text.count)
-    var prevWasSpace = false
-    for ch in text {
-        if ch == " " || ch == "\t" || ch == "\n" || ch == "\r" {
-            if !prevWasSpace {
-                result.append(" ")
-                prevWasSpace = true
-            }
-        } else {
-            result.append(ch)
-            prevWasSpace = false
-        }
-    }
-    return result
 }
