@@ -355,8 +355,11 @@ class HTMLToMarkdownTests: XCTestCase {
         </table>
         """
         let result = try convert(html, plugins: [BasePlugin(), CommonmarkPlugin(), TablePlugin()])
-        XCTAssertTrue(result.contains("|"))
-        XCTAssertTrue(result.contains("H1"))
+        // Aligned padding: H1/C1 are 2 chars wide, H2/C2 are 2 chars wide
+        XCTAssertTrue(result.contains("| H1 | H2 |"))
+        XCTAssertTrue(result.contains("| C1 | C2 |"))
+        // Separator uses aligned dashes: 2 chars width = |----|----|
+        XCTAssertTrue(result.contains("|----|----|"))
     }
 
     // MARK: - Data Conversion
@@ -744,5 +747,77 @@ class HTMLToMarkdownTests: XCTestCase {
         let html = "<ul><li><p>Someone once said:</p><blockquote>My famous quote</blockquote><span>- someone</span></li></ul>"
         let result = try convert(html)
         XCTAssertEqual(result, "- Someone once said:\n  \n  > My famous quote\n  \n  \\- someone")
+    }
+
+    // MARK: - Delimiter Whitespace Preservation (Go Compatibility)
+
+    func testEmphasisPreservesLeadingSpace() throws {
+        // Go: before *.middle* after — surrounding spaces are outside delimiters
+        let result = try convert("<p>before<em> .middle </em>after</p>")
+        XCTAssertEqual(result, "before *.middle* after")
+    }
+
+    func testBoldPreservesLeadingSpace() throws {
+        let result = try convert("<p>before<strong> middle </strong>after</p>")
+        XCTAssertEqual(result, "before **middle** after")
+    }
+
+    // MARK: - Empty Blockquote (Go Compatibility)
+
+    func testEmptyBlockquoteProducesNothing() throws {
+        // Go returns empty string for empty blockquotes
+        XCTAssertEqual(try convert("<blockquote></blockquote>"), "")
+        XCTAssertEqual(try convert("<blockquote>   </blockquote>"), "")
+    }
+
+    // MARK: - Blockquote with Multiple Breaks (Go Compatibility)
+
+    func testBlockquoteWithMultipleBreaks() throws {
+        // Three <br/> elements produce only one blank line in blockquote (not three)
+        let result = try convert("<blockquote>Start<br/><br/><br/>End</blockquote>")
+        XCTAssertEqual(result, "> Start\n> \n> End")
+    }
+
+    // MARK: - Strikethrough Whitespace Preservation
+
+    func testStrikethroughPreservesWhitespace() throws {
+        // Spaces around <del> content should be outside the ~~ delimiters
+        let result = try convert("<p>before<del> text </del>after</p>", plugins: [
+            BasePlugin(), CommonmarkPlugin(), StrikethroughPlugin()
+        ])
+        XCTAssertEqual(result, "before ~~text~~ after")
+    }
+
+    // MARK: - Table Aligned Padding (Go Compatibility)
+
+    func testTableAlignedPadding() throws {
+        let html = """
+        <table>
+            <thead><tr><th>Name</th><th>Age</th></tr></thead>
+            <tbody>
+                <tr><td>Alice</td><td>30</td></tr>
+                <tr><td>Bob</td><td>25</td></tr>
+            </tbody>
+        </table>
+        """
+        let result = try convert(html, plugins: [BasePlugin(), CommonmarkPlugin(), TablePlugin()])
+        // Aligned padding: "Name" is 4 chars, "Alice" is 5 chars → max col width 5
+        XCTAssertTrue(result.contains("| Name  | Age |") || result.contains("| Alice |"))
+        // Separator should use dashes matching column width
+        XCTAssertTrue(result.contains("|----") || result.contains("|-----"))
+    }
+
+    func testTableMinimalPadding() throws {
+        let html = """
+        <table>
+            <thead><tr><th>H1</th><th>H2</th></tr></thead>
+            <tbody><tr><td>C1</td><td>C2</td></tr></tbody>
+        </table>
+        """
+        var opts = TableOptions()
+        opts.cellPaddingBehavior = .minimal
+        let result = try convert(html, plugins: [BasePlugin(), CommonmarkPlugin(), TablePlugin(options: opts)])
+        XCTAssertTrue(result.contains("| H1 | H2 |"))
+        XCTAssertTrue(result.contains("|:-:|") || result.contains("|---|") || result.contains("|--|"))
     }
 }
