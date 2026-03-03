@@ -6,15 +6,16 @@ private func codeRanges(in text: String) -> [Range<String.Index>] {
     let nsText = text as NSString
 
     // 1. Fenced code blocks: ```lang\n...\n``` or ~~~lang\n...\n~~~
-    let fencedPattern = "(?m)^(`{3,})[^\n]*\n[\\s\\S]*?\n\\1[^\\S\n]*$|(?m)^(~{3,})[^\n]*\n[\\s\\S]*?\n\\2[^\\S\n]*$"
+    // (?![`]) / (?![~]) after \1/\2 ensures exact closing count (no extra backticks/tildes)
+    let fencedPattern = "(?m)^(`{3,})[^\n]*\n[\\s\\S]*?\n\\1(?![`])[^\\S\n]*$|(?m)^(~{3,})[^\n]*\n[\\s\\S]*?\n\\2(?![~])[^\\S\n]*$"
     if let re = try? NSRegularExpression(pattern: fencedPattern) {
         for match in re.matches(in: text, range: NSRange(location: 0, length: nsText.length)) {
             if let r = Range(match.range, in: text) { ranges.append(r) }
         }
     }
 
-    // 2. Inline code spans: `code` or ``code`` etc.
-    let inlinePattern = "(`+)[\\s\\S]*?\\1(?!`)"
+    // 2. Inline code spans: (`+)(?![`]) ensures exact opening count; \1(?![`]) ensures exact closing count
+    let inlinePattern = "(`+)(?![`])[\\s\\S]*?\\1(?![`])"
     if let re = try? NSRegularExpression(pattern: inlinePattern) {
         for match in re.matches(in: text, range: NSRange(location: 0, length: nsText.length)) {
             if let r = Range(match.range, in: text) {
