@@ -1,16 +1,18 @@
 import Foundation
 import SwiftSoup
 
-/// Set of HTML block-level element tag names matching Go's `dom.NameIsBlockNode`.
-/// Used as fallback in TagTypeRegistry when a tag isn't explicitly registered,
-/// and in the registry-aware collapse isBlock closure.
+/// Set of HTML block-level element tag names matching Go's `collapse/is_node.go:blockElements`.
+/// Used by the whitespace collapse algorithm to determine block boundaries.
 let htmlBlockTags: Set<String> = [
-    "address", "article", "aside", "blockquote", "details", "dialog",
-    "dd", "div", "dl", "dt", "fieldset", "figcaption", "figure",
-    "footer", "form",
+    "address", "article", "aside", "audio", "blockquote",
+    "body", "canvas", "center",
+    "dd", "dir", "div", "dl", "dt",
+    "fieldset", "figcaption", "figure", "footer", "form", "frameset",
     "h1", "h2", "h3", "h4", "h5", "h6",
-    "header", "hgroup", "hr", "li", "main", "nav",
-    "ol", "p", "pre", "section", "table", "ul",
+    "header", "hgroup", "hr", "html",
+    "isindex", "li", "main", "menu", "nav", "noframes", "noscript",
+    "ol", "output", "p", "pre", "section",
+    "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul",
 ]
 
 /// Collapse whitespace in HTML document following Go's collapse.Collapse algorithm exactly.

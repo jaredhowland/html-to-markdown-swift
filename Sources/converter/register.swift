@@ -1,6 +1,31 @@
 import Foundation
 import SwiftSoup
 
+/// Matches Go's dom.NameIsBlockNode — used by converter getType(for:) fallback.
+private let domBlockTags: Set<String> = [
+    "address", "article", "aside", "blockquote", "details", "dialog",
+    "dd", "div", "dl", "dt", "fieldset", "figcaption", "figure",
+    "footer", "form",
+    "h1", "h2", "h3", "h4", "h5", "h6",
+    "header", "hgroup", "hr", "li", "main", "nav",
+    "ol", "p", "pre", "section", "table", "ul",
+]
+
+/// Matches Go's dom.NameIsInlineNode — used by converter getType(for:) fallback.
+private let domInlineTags: Set<String> = [
+    "#text", "a", "abbr", "acronym", "audio",
+    "b", "bdi", "bdo", "big", "br", "button",
+    "canvas", "cite", "code", "data", "datalist",
+    "del", "dfn", "em", "embed",
+    "i", "iframe", "img", "input", "ins",
+    "kbd", "label", "map", "mark", "meter",
+    "noscript", "object", "output", "picture", "progress",
+    "q", "ruby", "s", "samp", "script", "select",
+    "slot", "small", "span", "strong", "sub", "sup",
+    "svg", "template", "textarea", "time",
+    "u", "tt", "var", "video", "wbr",
+]
+
 /// Type alias for node rendering function
 public typealias NodeRenderer = (Node, Converter) throws -> String?
 
@@ -40,8 +65,11 @@ public class TagTypeRegistry {
         if let entry = types[tagName] {
             return entry.type
         }
-        // Fallback: mirrors Go's dom.NameIsBlockNode used in preRenderCollapse.
-        return htmlBlockTags.contains(tagName.lowercased()) ? .block : .inline
+        // Fallback mirrors Go's dom.NameIsBlockNode / dom.NameIsInlineNode
+        let lower = tagName.lowercased()
+        if domBlockTags.contains(lower) { return .block }
+        if domInlineTags.contains(lower) { return .inline }
+        return .inline
     }
 }
 

@@ -6,24 +6,8 @@ class BasePlugin: Plugin {
     var name: String { return "base" }
 
     func initialize(conv converter: Converter) {
-        let blockTags = [
-            "div", "p", "article", "section", "header", "footer", "main", "nav",
-            "blockquote", "pre", "ul", "ol", "li", "h1", "h2", "h3", "h4", "h5", "h6",
-            "table", "td", "th", "hr", "figure", "figcaption"
-        ]
-        let inlineTags = [
-            "span", "strong", "em", "b", "i", "u", "code", "a", "img", "br",
-            "abbr", "cite", "del", "dfn", "ins", "kbd", "mark", "q", "s", "samp", "small",
-            "sub", "sup", "var", "tt"
-        ]
-        let removeTags = ["style", "script", "meta", "link", "noscript", "head", "iframe", "input", "textarea"]
+        let removeTags = ["style", "script", "meta", "link", "noscript", "head", "iframe", "input", "textarea", "#comment"]
 
-        for tag in blockTags {
-            converter.registerTagType(tag, type: .block, priority: .early)
-        }
-        for tag in inlineTags {
-            converter.registerTagType(tag, type: .inline, priority: .early)
-        }
         for tag in removeTags {
             converter.registerTagType(tag, type: .remove, priority: .early)
         }
