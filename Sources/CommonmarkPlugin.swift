@@ -248,6 +248,15 @@ class CommonmarkPlugin: Plugin {
             if let el = s as? Element {
                 let tag = el.tagName()
                 if tag == "span" {
+                    // DFS into span: if its first child is a TextNode (any), stop merge;
+                    // if nil, skip span; if Element, dive into it (matches Go's GetNextNeighborNode).
+                    if let firstChild = el.getChildNodes().first {
+                        if firstChild is TextNode { return nil }
+                        if let childEl = firstChild as? Element {
+                            sibling = childEl
+                            continue
+                        }
+                    }
                     sibling = s.nextSibling()
                     continue
                 }

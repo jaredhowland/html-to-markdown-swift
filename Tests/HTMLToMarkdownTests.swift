@@ -722,4 +722,14 @@ class HTMLToMarkdownTests: XCTestCase {
     func testLinkWrappingH2() throws {
         XCTAssertEqual(try convert("<a href=\"/page.html\"><h2>Heading 2</h2></a>"), "## [Heading 2](/page.html)")
     }
+
+    // MARK: - Adjacent Merge with Span
+
+    func testAdjacentBoldMergesThroughSpan() throws {
+        XCTAssertEqual(try convert("<p><strong>a</strong><span><strong>b</strong></span></p>"), "**ab**")
+    }
+
+    func testAdjacentBoldSpaceInSpanStopsMerge() throws {
+        XCTAssertEqual(try convert("<p><strong>a</strong><span> <strong>b</strong></span></p>"), "**a** **b**")
+    }
 }
