@@ -1252,10 +1252,13 @@ private func renderListContainer(node: Node, converter: Converter, isOrdered: Bo
         let indent = String(repeating: " ", count: indentCount)
 
         let lines = item.components(separatedBy: "\n")
-        let firstLine = "\(prefix)\(lines[0])"
+        // Within code blocks, newlines use a special marker. Apply indent to those too.
+        let indentedMarker = String(codeBlockNewlineMarker) + indent
+        let firstLine = "\(prefix)\(lines[0].replacingOccurrences(of: String(codeBlockNewlineMarker), with: indentedMarker))"
         if lines.count > 1 {
-            let rest = lines.dropFirst().map { line in
-                line.isEmpty ? indent : "\(indent)\(line)"
+            let rest = lines.dropFirst().map { line -> String in
+                let indentedLine = line.replacingOccurrences(of: String(codeBlockNewlineMarker), with: indentedMarker)
+                return indentedLine.isEmpty ? indent : "\(indent)\(indentedLine)"
             }.joined(separator: "\n")
             result += "\(firstLine)\n\(rest)"
         } else {
