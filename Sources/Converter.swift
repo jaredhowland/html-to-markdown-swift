@@ -46,7 +46,8 @@ public class Converter {
     
     /// Convert an HTML string to Markdown
     func convertString(_ html: String) throws -> String {
-        let document = try SwiftSoup.parse(html)
+        let (processedHTML, commentPairs) = extractHTMLComments(html)
+        let document = try SwiftSoup.parse(processedHTML)
 
         // Pre-render: document-level plugin transformations (runs BEFORE collapse, matching Go's order)
         for plugin in plugins {
@@ -70,9 +71,57 @@ public class Converter {
         // Restore code block newline markers after all post-processing
         result = result.replacingOccurrences(of: String(codeBlockNewlineMarker), with: "\n")
 
+        // Restore original HTML comments that SwiftSoup may not round-trip faithfully.
+        // Apply the same HTML entity escaping that Go's html.Render uses for comment data.
+        for (placeholder, original) in commentPairs {
+            result = result.replacingOccurrences(of: placeholder, with: htmlEscapeComment(original))
+        }
+
         return result
     }
-    
+
+    /// Replace every HTML comment in `html` with a unique placeholder so that SwiftSoup
+    /// never has a chance to lose data (e.g. extra leading dashes in `<!------...`).
+    /// Returns the substituted HTML and a list of (placeholder, original) pairs used
+    /// to restore the originals in the output markdown.
+    private func extractHTMLComments(_ html: String) -> (String, [(String, String)]) {
+        guard let regex = try? NSRegularExpression(pattern: #"<!--[\s\S]*?-->"#) else {
+            return (html, [])
+        }
+
+        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        guard !matches.isEmpty else { return (html, []) }
+
+        var pairs: [(String, String)] = []
+        var resultParts: [String] = []
+        var lastEnd = html.startIndex
+
+        for (counter, match) in matches.enumerated() {
+            guard let range = Range(match.range, in: html) else { continue }
+            resultParts.append(String(html[lastEnd..<range.lowerBound]))
+            let original = String(html[range])
+            let placeholder = "<!--__SWIFTMC\(counter)__-->"
+            pairs.append((placeholder, original))
+            resultParts.append(placeholder)
+            lastEnd = range.upperBound
+        }
+        resultParts.append(String(html[lastEnd...]))
+
+        return (resultParts.joined(), pairs)
+    }
+
+    /// Apply HTML entity escaping to comment content, matching Go's html.Render behaviour
+    /// for CommentNode (which calls escape() on the data).
+    private func htmlEscapeComment(_ comment: String) -> String {
+        guard comment.hasPrefix("<!--"), comment.hasSuffix("-->") else { return comment }
+        let data = String(comment.dropFirst(4).dropLast(3))
+        let escaped = data
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+        return "<!--\(escaped)-->"
+    }
+
     /// Convert an HTML document node to Markdown
     func convertNode(_ node: Node) throws -> String {
         if let textNode = node as? TextNode {
