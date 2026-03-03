@@ -392,6 +392,19 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "[with whitespace around](example.com)")
     }
 
+    func testLinkTitleWithDoubleQuotes() throws {
+        // Title containing double quotes should use single-quote wrapping
+        // &quot; decodes to " in HTML
+        let result = try convert(#"<a href="/" title="&quot;link title&quot;">content</a>"#)
+        XCTAssertEqual(result, #"[content](/ '"link title"')"#)
+    }
+
+    func testLinkTitleMultiline() throws {
+        // Multiline title: newlines collapsed to space
+        let result = try convert("<a href=\"/\" title=\"link\ntitle\">content</a>")
+        XCTAssertEqual(result, "[content](/ \"link title\")")
+    }
+
     // MARK: - Performance
 
     func testLargeHTML() throws {

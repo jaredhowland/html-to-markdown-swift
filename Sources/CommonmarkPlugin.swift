@@ -124,6 +124,18 @@ class CommonmarkPlugin: Plugin {
 
     // MARK: - Link Rendering
 
+    private func formatLinkTitle(_ title: String) -> String {
+        // Collapse newlines to space
+        let normalized = title
+            .replacingOccurrences(of: "\r\n", with: " ")
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+        if normalized.contains("\"") {
+            return "'\(normalized)'"
+        }
+        return "\"\(normalized)\""
+    }
+
     private func normalizeURL(_ rawURL: String) -> String {
         var url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
         url = url.replacingOccurrences(of: "\n", with: "")
@@ -168,7 +180,7 @@ class CommonmarkPlugin: Plugin {
             if title.isEmpty {
                 return "\(leftPad)[\(innerContent)](\(url))\(rightPad)"
             } else {
-                return "\(leftPad)[\(innerContent)](\(url) \"\(title)\")\(rightPad)"
+                return "\(leftPad)[\(innerContent)](\(url) \(formatLinkTitle(title)))\(rightPad)"
             }
         }
     }
@@ -196,7 +208,7 @@ class CommonmarkPlugin: Plugin {
             if title.isEmpty {
                 return "![\(alt)](\(url))"
             } else {
-                return "![\(alt)](\(url) \"\(title)\")"
+                return "![\(alt)](\(url) \(formatLinkTitle(title)))"
             }
         }
     }
