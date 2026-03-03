@@ -164,14 +164,8 @@ func collapseInlineSpaces(_ text: String) -> String {
 /// Render the node as raw HTML
 public func RenderAsHTML(_ node: Node, _ converter: Converter) throws -> String? {
     guard let element = node as? Element else {
-        // Handle Comment nodes: render as block HTML (<!--...-->)
-        // Go's html.Render escapes HTML entities in comment data (&amp;, &lt;, &gt;, etc.)
         if let comment = node as? Comment {
-            let escaped = comment.getData()
-                .replacingOccurrences(of: "&", with: "&amp;")
-                .replacingOccurrences(of: "<", with: "&lt;")
-                .replacingOccurrences(of: ">", with: "&gt;")
-            return "\n\n<!--\(escaped)-->\n\n"
+            return "\n\n<!--\(comment.getData())-->\n\n"
         }
         return nil
     }
