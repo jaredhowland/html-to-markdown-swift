@@ -712,4 +712,14 @@ class HTMLToMarkdownTests: XCTestCase {
     func testBracketsInLinkText() throws {
         XCTAssertEqual(try convert("<a href=\"/page.html\">a(b)[c]</a>"), "[a(b)\\[c\\]](/page.html)")
     }
+
+    // MARK: - SwapTags: Link wrapping Heading
+
+    func testLinkWrappingH1() throws {
+        XCTAssertEqual(try convert("<a href=\"/page.html\"><h1>Heading 1</h1></a>"), "# [Heading 1](/page.html)")
+    }
+
+    func testLinkWrappingH2() throws {
+        XCTAssertEqual(try convert("<a href=\"/page.html\"><h2>Heading 2</h2></a>"), "## [Heading 2](/page.html)")
+    }
 }

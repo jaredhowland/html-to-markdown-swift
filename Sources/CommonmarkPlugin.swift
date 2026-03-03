@@ -413,6 +413,42 @@ class CommonmarkPlugin: Plugin {
                 return try renderChildren(node, converter: converter)
             }
 
+            // Go replaces "\n" with " " in title but does NOT trim surrounding whitespace
+            let rawTitle = (try? element.attr("title")) ?? ""
+            let title = rawTitle
+                .replacingOccurrences(of: "\r\n", with: " ")
+                .replacingOccurrences(of: "\n", with: " ")
+                .replacingOccurrences(of: "\r", with: " ")
+
+            // SwapTags(link, heading): if sole non-whitespace child is a heading,
+            // render as heading containing the link: `## [content](href)`
+            let nonWsChildren = element.getChildNodes().filter { child in
+                if let text = child as? TextNode {
+                    return !text.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                }
+                return true
+            }
+            if nonWsChildren.count == 1, let headingEl = nonWsChildren[0] as? Element {
+                let tagName = headingEl.tagName()
+                if tagName.count == 2 && tagName.first == "h",
+                   let level = Int(String(tagName.last!)), (1...6).contains(level) {
+                    let hContent = try renderChildren(headingEl, converter: converter)
+                    let hContentEscaped = hContent.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
+                    let trimmedH = hContentEscaped.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let linkMd = title.isEmpty
+                        ? "[\(trimmedH)](\(href))"
+                        : "[\(trimmedH)](\(href) \(self.formatLinkTitle(title)))"
+                    if self.options.headingStyle == .setext && level <= 2 {
+                        let underlineChar: Character = level == 1 ? "=" : "-"
+                        let underline = String(repeating: underlineChar, count: max(3, trimmedH.count))
+                        return "\n\n\(linkMd)\n\(underline)\n\n"
+                    } else {
+                        let hashes = String(repeating: "#", count: level)
+                        return "\n\n\(hashes) \(linkMd)\n\n"
+                    }
+                }
+            }
+
             let content = try renderChildren(node, converter: converter)
             // Force-escape ] inside link text to prevent premature link closing
             let contentEscaped = content.replacingOccurrences(of: "\(escapePlaceholder)]", with: "\\]")
@@ -421,13 +457,6 @@ class CommonmarkPlugin: Plugin {
             if trimmedContent.isEmpty && self.options.linkEmptyContentBehavior == .skip {
                 return ""
             }
-
-            // Go replaces "\n" with " " in title but does NOT trim surrounding whitespace
-            let rawTitle = (try? element.attr("title")) ?? ""
-            let title = rawTitle
-                .replacingOccurrences(of: "\r\n", with: " ")
-                .replacingOccurrences(of: "\n", with: " ")
-                .replacingOccurrences(of: "\r", with: " ")
 
             let leftPad = String(contentEscaped.prefix(while: { $0 == " " }))
             let rightPad = String(contentEscaped.reversed().prefix(while: { $0 == " " }).reversed())
