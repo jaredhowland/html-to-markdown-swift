@@ -189,6 +189,58 @@ Output:
 | Bob | 25 |
 ```
 
+#### FrontmatterPlugin
+
+Prepends a YAML frontmatter block to the converted markdown output. Extracts metadata from `<head>` (title, author, description, keywords/tags) and computes word count and reading time from the rendered markdown.
+
+**Frontmatter fields:**
+
+| Field | Source |
+|---|---|
+| `title` | `<title>` or `og:title` |
+| `author` | `meta[name=author]` or `og:author` |
+| `source` | `.domain` converter option |
+| `url` | `<link rel=canonical>` or `.domain` |
+| `date_saved` | Current time (ISO 8601) |
+| `word_count` | Counted from rendered markdown |
+| `reading_time` | `ceil(words / 200)` min |
+| `description` | `meta[name=description]` or `og:description` |
+| `tags` | `meta[name=keywords]`, `article:tag`, schema.org ld+json |
+
+Fields are omitted when not found. `date_saved`, `word_count`, and `reading_time` are always present.
+
+**Registration:**
+
+```swift
+let markdown = try HTMLToMarkdown.convert(html, plugins: [
+    BasePlugin(),
+    CommonmarkPlugin(),
+    FrontmatterPlugin()
+], options: [
+    .domain("https://example.com")
+])
+```
+
+**Example output:**
+
+```yaml
+---
+title: "My Page Title"
+author: "Jane Doe"
+source: "https://example.com"
+url: "https://example.com/page/"
+date_saved: "2026-03-03T20:34:57Z"
+word_count: "312"
+reading_time: "2 min"
+description: "Page description here."
+tags:
+  - "swift"
+  - "ios"
+---
+
+{markdown content}
+```
+
 ## Converter Options
 
 ### Domain Resolution
@@ -225,6 +277,63 @@ By default, special characters are escaped only when they would trigger unintend
     registry.register(tagName: "custom-inline", type: .inline, priority: .standard)
 }
 ```
+
+## Advanced Usage
+
+### Writing a Custom Plugin
+
+Implement the `Plugin` protocol — provide a `name` and register handlers in `initialize(conv:)`:
+
+```swift
+import HTMLToMarkdown
+
+public class MyPlugin: Plugin {
+    public var name: String { return "my-plugin" }
+
+    public init() {}
+
+    public func initialize(conv: Converter) throws {
+        // Render a specific HTML tag
+        conv.Register.rendererFor("aside", .block, { ctx, w, node in
+            w.writeString("> ")
+            ctx.renderChildNodes(w, node)
+            return .success
+        })
+
+        // Transform text node content
+        conv.Register.textTransformer({ ctx, text in
+            return text.replacingOccurrences(of: "foo", with: "bar")
+        })
+
+        // Mark a character as needing escaping
+        conv.Register.escapedChar("@")
+
+        // Register another plugin as a dependency
+        try conv.Register.plugin(CommonmarkPlugin())
+    }
+}
+
+// Use it:
+let markdown = try HTMLToMarkdown.convert(html, plugins: [
+    BasePlugin(),
+    CommonmarkPlugin(),
+    MyPlugin()
+])
+```
+
+Available registration methods on `conv.Register`:
+
+| Method | Purpose |
+|---|---|
+| `rendererFor(tag, type, handler)` | Handle a specific HTML tag |
+| `renderer(handler)` | Catch-all renderer (all tags) |
+| `preRenderer(handler)` | Transform DOM before rendering |
+| `postRenderer(handler)` | Transform final markdown string |
+| `textTransformer(handler)` | Transform text node content |
+| `escapedChar(char)` | Mark a character as needing escaping |
+| `unEscaper(handler)` | Control when a character is unescaped |
+| `tagType(tag, type)` | Override block/inline classification |
+| `plugin(plugin)` | Register a sub-plugin dependency |
 
 ## Examples
 
