@@ -536,4 +536,42 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertTrue(result.contains("Paragraph 1"))
         XCTAssertTrue(result.contains("Paragraph 100"))
     }
+
+    // MARK: - Go Compatibility Tests
+
+    func testImageAltWithBrackets() throws {
+        // Go: ![\[not a link\]](/img.png) - brackets in alt should be escaped
+        let result = try convert(#"<img src="/img.png" alt="[not a link]">"#)
+        XCTAssertEqual(result, #"![\[not a link\]](/img.png)"#)
+    }
+
+    func testGtInTextRendersAsEntity() throws {
+        // Go: Not a &gt; blockquote - > in normal text renders as &gt;
+        let result = try convert("<p>Not a > blockquote</p>")
+        XCTAssertEqual(result, "Not a &gt; blockquote")
+    }
+
+    func testCodeInlineSpacesOnly() throws {
+        // Go: ` ` (backtick-space-backtick) - spaces-only inline code is preserved
+        let result = try convert("<code> </code>")
+        XCTAssertEqual(result, "` `")
+    }
+
+    func testCodeInlineEmptyIsEmpty() throws {
+        // Go: (empty string) - empty inline code produces nothing
+        let result = try convert("<code></code>")
+        XCTAssertEqual(result, "")
+    }
+
+    func testAdjacentBoldMerges() throws {
+        // Go: **bold onebold two** - adjacent bold elements without space between
+        let result = try convert("<strong>bold one</strong><strong>bold two</strong>")
+        XCTAssertEqual(result, "**bold onebold two**")
+    }
+
+    func testNestedBoldItalicProducesCombined() throws {
+        // Go: ***hello***
+        let result = try convert("<p><b><b><i><b>hello</b></i></b></b></p>")
+        XCTAssertEqual(result, "***hello***")
+    }
 }
