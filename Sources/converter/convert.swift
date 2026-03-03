@@ -4,6 +4,11 @@ import SwiftSoup
 extension Converter {
     /// Convert an HTML string to Markdown
     func convertString(_ html: String) throws -> String {
+        guard !renderers.isEmpty else {
+            throw ConversionError.conversionFailed(
+                #"no render handlers are registered. did you forget to register the "commonmark" and "base" plugins?"#
+            )
+        }
         let (processedHTML, commentPairs) = extractHTMLComments(html)
         let document = try SwiftSoup.parse(processedHTML)
 
