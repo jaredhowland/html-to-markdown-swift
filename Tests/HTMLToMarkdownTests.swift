@@ -235,6 +235,20 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "3. A\n4. B")
     }
 
+    func testOrderedListPaddingCrossesDigitBoundary() throws {
+        // start=9, 2 items → "09." and "10." (zero-padded to match digit count of last item)
+        let html = "<ol start=\"9\"><li>a</li><li>b</li></ol>"
+        let result = try convert(html)
+        XCTAssertEqual(result, "09. a\n10. b")
+    }
+
+    func testOrderedListNoPaddingWithinSameDigitCount() throws {
+        // start=8, 2 items → "8." and "9." (no padding needed, both single digit)
+        let html = "<ol start=\"8\"><li>a</li><li>b</li></ol>"
+        let result = try convert(html)
+        XCTAssertEqual(result, "8. a\n9. b")
+    }
+
     func testCustomBulletMarker() throws {
         var opts = CommonmarkOptions()
         opts.bulletListMarker = "*"

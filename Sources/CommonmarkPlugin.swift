@@ -445,7 +445,13 @@ private func renderListContainer(node: Node, converter: Converter, isOrdered: Bo
     for (i, item) in items.enumerated() {
         let prefix: String
         if isOrdered {
-            prefix = "\(startAt + i). "
+            let lastIndex = startAt + items.count - 1
+            let maxDigits = String(lastIndex).count
+            let currentNum = startAt + i
+            let numStr = String(currentNum)
+            let paddingCount = max(0, maxDigits - numStr.count)
+            let padded = String(repeating: "0", count: paddingCount) + numStr
+            prefix = "\(padded). "
         } else {
             prefix = "\(marker) "
         }
