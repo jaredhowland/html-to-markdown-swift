@@ -24,7 +24,7 @@ A robust, fully featured Swift port of the popular [html-to-markdown](https://gi
 ⚙️ **Customization**
 - Domain resolution for converting relative links to absolute URLs
 - CSS selector-based include/exclude filtering
-- Customizable escape modes (smart, disabled)
+- Smart escaping (automatic, with option to disable)
 - Configurable markdown delimiters
 - Custom tag type registration
 - Pluggable tag renderers
@@ -230,8 +230,9 @@ Resolves relative URLs to absolute URLs using the provided domain.
 
 ### Escape Mode
 
+By default, special characters are escaped only when they would trigger unintended Markdown formatting. To disable all escaping:
+
 ```swift
-.escapeMode(.smart)  // Default: escape special characters only when necessary
 .escapeMode(.disabled) // Don't escape special characters
 ```
 
