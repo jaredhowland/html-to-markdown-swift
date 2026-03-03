@@ -31,6 +31,8 @@ public struct CommonmarkOptions {
     public var linkEmptyHrefBehavior: LinkBehavior = .render
     /// How to handle links with empty content
     public var linkEmptyContentBehavior: LinkBehavior = .render
+    /// When true, suppresses the `<!--THE END-->` comment inserted between consecutive lists
+    public var disableListEndComment: Bool = false
 
     public init() {}
 }
@@ -492,24 +494,33 @@ class CommonmarkPlugin: Plugin {
             guard let self = self else { return nil }
             let marker = self.options.bulletListMarker
             var result = try renderListContainer(node: node, converter: converter, isOrdered: false, marker: marker, startAt: 1)
-            if marker == "*", let element = node as? Element {
+            if !self.options.disableListEndComment, let element = node as? Element {
                 let nextTag = try? element.nextElementSibling()?.tagName()
                 if nextTag == "ul" || nextTag == "ol" {
-                    result = result.replacingOccurrences(of: "\\n+$", with: "", options: .regularExpression)
+                    result = result.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
                     result += "\n\n<!--THE END-->"
                 }
             }
             return result
         }
 
-        converter.registerRenderer("ol") { node, converter in
+        converter.registerRenderer("ol") { [weak self] node, converter in
+            guard let self = self else { return nil }
             var startAt = 1
             if let element = node as? Element,
                let startStr = try? element.attr("start"),
                let start = Int(startStr) {
                 startAt = start
             }
-            return try renderListContainer(node: node, converter: converter, isOrdered: true, marker: "-", startAt: startAt)
+            var result = try renderListContainer(node: node, converter: converter, isOrdered: true, marker: "-", startAt: startAt)
+            if !self.options.disableListEndComment, let element = node as? Element {
+                let nextTag = try? element.nextElementSibling()?.tagName()
+                if nextTag == "ul" || nextTag == "ol" {
+                    result = result.replacingOccurrences(of: "\n+$", with: "", options: .regularExpression)
+                    result += "\n\n<!--THE END-->"
+                }
+            }
+            return result
         }
     }
 

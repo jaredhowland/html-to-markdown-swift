@@ -450,10 +450,11 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "* list a\n\n<!--THE END-->\n\n* list b")
     }
 
-    func testConsecutiveListsWithDashMarkerNoEndComment() throws {
+    func testConsecutiveListsWithDashMarkerGetsEndComment() throws {
+        // Go adds <!--THE END--> between consecutive lists for all bullet markers
         let html = "<ul><li>list a</li></ul><ul><li>list b</li></ul>"
         let result = try convert(html)
-        XCTAssertFalse(result.contains("<!--THE END-->"))
+        XCTAssertTrue(result.contains("<!--THE END-->"))
     }
 
     // MARK: - Smart Escaping
@@ -639,5 +640,34 @@ class HTMLToMarkdownTests: XCTestCase {
         // Go collapses newlines to spaces in inline code
         let result = try convert("<code>foo\nbar</code>")
         XCTAssertEqual(result, "`foo bar`")
+    }
+
+    // MARK: - Consecutive Lists (Go Compatibility)
+
+    func testConsecutiveOlGetsEndComment() throws {
+        // Go: ol followed by another list also gets <!--THE END-->
+        let html = "<ol><li>a</li></ol><ol><li>b</li></ol>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("<!--THE END-->"))
+    }
+
+    func testDisableListEndComment() throws {
+        var opts = CommonmarkOptions()
+        opts.disableListEndComment = true
+        let html = "<ul><li>list a</li></ul><ul><li>list b</li></ul>"
+        let result = try convertPlugins(html, options: opts)
+        XCTAssertFalse(result.contains("<!--THE END-->"))
+        let normalized = result.replacingOccurrences(of: "\n\n\n\n", with: "\n\n")
+        XCTAssertEqual(normalized, "- list a\n\n- list b")
+    }
+
+    func testDisableListEndCommentVerifyNoComment() throws {
+        var opts = CommonmarkOptions()
+        opts.disableListEndComment = true
+        let html = "<ul><li>list a</li></ul><ul><li>list b</li></ul>"
+        let result = try convertPlugins(html, options: opts)
+        XCTAssertFalse(result.contains("<!--THE END-->"))
+        XCTAssertTrue(result.contains("- list a"))
+        XCTAssertTrue(result.contains("- list b"))
     }
 }
