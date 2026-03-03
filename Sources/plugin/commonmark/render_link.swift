@@ -21,14 +21,31 @@ extension CommonmarkPlugin {
     }
 
     /// Assemble an absolute URL from a raw href and optional base domain.
-    /// Matches Go's defaultAssembleAbsoluteURL logic.
+    /// Matches Go's defaultAssembleAbsoluteURL logic exactly.
     func assembleAbsoluteURL(_ rawURL: String, domain: String?) -> String {
         var url = rawURL.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if url == "#" { return url }
 
+        // Increase the chance that the URL will parse correctly (matches Go)
         url = url.replacingOccurrences(of: "\n", with: "%0A")
         url = url.replacingOccurrences(of: "\t", with: "%09")
+
+        // Short-circuit data URIs — resolve against a base would corrupt them
+        if url.lowercased().hasPrefix("data:") {
+            return percentEncodeURL(url)
+        }
+
+        // Preserve query parameter order while normalizing encoding (matches Go's ParseAndEncodeQuery)
+        if let queryStart = url.range(of: "?") {
+            let base = String(url[url.startIndex..<queryStart.lowerBound])
+            let rest = String(url[queryStart.upperBound...])
+            // Split rest into query and fragment
+            let (rawQuery, fragment) = splitQueryFragment(rest)
+            let encodedQuery = parseAndEncodeQuery(rawQuery)
+            let plusFixed = encodedQuery.replacingOccurrences(of: "+", with: "%20")
+            url = base + "?" + plusFixed + (fragment.isEmpty ? "" : "#" + fragment)
+        }
 
         if let domain = domain, !domain.isEmpty {
             if let baseURL = parseBaseDomain(domain) {
@@ -43,14 +60,49 @@ extension CommonmarkPlugin {
             }
         }
 
-        url = url.replacingOccurrences(of: " ", with: "%20")
-        url = url.replacingOccurrences(of: "[", with: "%5B")
-        url = url.replacingOccurrences(of: "]", with: "%5D")
-        url = url.replacingOccurrences(of: "(", with: "%28")
-        url = url.replacingOccurrences(of: ")", with: "%29")
-        url = url.replacingOccurrences(of: "<", with: "%3C")
-        url = url.replacingOccurrences(of: ">", with: "%3E")
+        return percentEncodeURL(url)
+    }
+
+    /// Percent-encode the characters Go's percentEncodingReplacer handles.
+    private func percentEncodeURL(_ url: String) -> String {
         return url
+            .replacingOccurrences(of: " ", with: "%20")
+            .replacingOccurrences(of: "[", with: "%5B")
+            .replacingOccurrences(of: "]", with: "%5D")
+            .replacingOccurrences(of: "(", with: "%28")
+            .replacingOccurrences(of: ")", with: "%29")
+            .replacingOccurrences(of: "<", with: "%3C")
+            .replacingOccurrences(of: ">", with: "%3E")
+    }
+
+    /// Split "query&params#fragment" into ("query&params", "fragment").
+    private func splitQueryFragment(_ s: String) -> (String, String) {
+        if let hashIdx = s.firstIndex(of: "#") {
+            return (String(s[s.startIndex..<hashIdx]), String(s[s.index(after: hashIdx)...]))
+        }
+        return (s, "")
+    }
+
+    /// Preserve query parameter order while normalizing percent-encoding.
+    /// Mirrors Go's ParseAndEncodeQuery: split on "&", decode+re-encode each key/value.
+    func parseAndEncodeQuery(_ rawQuery: String) -> String {
+        guard !rawQuery.isEmpty else { return "" }
+        let parts = rawQuery.split(separator: "&", omittingEmptySubsequences: false)
+        return parts.map { part -> String in
+            let s = String(part)
+            if let eqIdx = s.firstIndex(of: "=") {
+                let key = decodeAndEncode(String(s[s.startIndex..<eqIdx]))
+                let val = String(s[s.index(after: eqIdx)...])
+                return val.isEmpty ? key + "=" : key + "=" + decodeAndEncode(val)
+            }
+            return decodeAndEncode(s)
+        }.joined(separator: "&")
+    }
+
+    private func decodeAndEncode(_ s: String) -> String {
+        guard let decoded = s.removingPercentEncoding else { return s }
+        // Re-encode using percent encoding (space → %20, not +)
+        return decoded.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? s
     }
 
     private func parseBaseDomain(_ rawDomain: String) -> URL? {
