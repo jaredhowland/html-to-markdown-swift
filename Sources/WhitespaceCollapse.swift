@@ -38,7 +38,7 @@ private func processNode(_ node: Node) throws {
 
     // For pre/code elements, don't collapse whitespace (preserve formatting)
     let tagName = element.tagName().lowercased()
-    if tagName == "pre" || tagName == "script" || tagName == "style" {
+    if tagName == "pre" || tagName == "code" || tagName == "script" || tagName == "style" {
         return
     }
 
