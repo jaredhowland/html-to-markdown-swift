@@ -118,6 +118,18 @@ class HTMLToMarkdownTests: XCTestCase {
         XCTAssertEqual(result, "### Hello")
     }
 
+    func testSetextH1WithBreak() throws {
+        var opts = CommonmarkOptions()
+        opts.headingStyle = .setext
+        let result = try convertPlugins("<h1>important<br/>heading</h1>", options: opts)
+        XCTAssertEqual(result, "important  \nheading\n===========")
+    }
+
+    func testATXH1WithBreakCollapsed() throws {
+        let result = try convert("<h1>important<br/>heading</h1>")
+        XCTAssertEqual(result, "# important heading")
+    }
+
     // MARK: - Links
 
     func testLink() throws {
