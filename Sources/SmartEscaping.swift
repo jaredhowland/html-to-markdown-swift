@@ -125,10 +125,10 @@ private func isOrderedListContext(chars: [Character], charIdx: Int) -> Bool {
         return false // Non-digit before the digits → not ordered list
     }
 
-    // Must be followed by space or tab
+    // Must be followed by space, tab, newline, or end of string (matches Go's IsSpace || next == 0)
     let next = charIdx + 1
-    if next >= chars.count { return false }
-    return chars[next] == " " || chars[next] == "\t"
+    if next >= chars.count { return true }
+    return chars[next] == " " || chars[next] == "\t" || chars[next] == "\n"
 }
 
 /// Returns true if `=` or `-` at charIdx would form a setext heading underline
