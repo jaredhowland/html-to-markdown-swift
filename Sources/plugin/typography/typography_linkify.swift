@@ -33,6 +33,11 @@ private func linkifyText(_ text: String) -> String {
             }
         }
 
+        // Skip if URL is inside Markdown link text: [text https://url]
+        if range.upperBound < result.endIndex && result[range.upperBound] == "]" {
+            continue
+        }
+
         var url = String(result[range])
         var suffix = ""
 

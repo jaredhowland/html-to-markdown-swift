@@ -88,4 +88,11 @@ class LinkifyPluginTests: XCTestCase {
         let openBracketCount = result.filter { $0 == "[" }.count
         XCTAssertEqual(openBracketCount, 1, "Should have exactly one link, got: \(result)")
     }
+
+    func testUrlInLinkTextNotDoubleWrapped() throws {
+        // <a href="other"> with URL in link text should not get double-linkified
+        let html = "<p><a href=\"https://other.com\">See https://example.com</a></p>"
+        let result = try convert(html)
+        XCTAssertFalse(result.contains("[["), "Should not create nested link brackets: \(result)")
+    }
 }
