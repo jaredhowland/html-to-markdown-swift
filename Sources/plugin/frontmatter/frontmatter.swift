@@ -104,7 +104,12 @@ public class FrontmatterPlugin: Plugin {
 // MARK: - YAML helpers
 
 private func yamlString(_ value: String) -> String {
-    let escaped = value.replacingOccurrences(of: "\"", with: "\\\"")
+    var escaped = value
+    escaped = escaped.replacingOccurrences(of: "\\", with: "\\\\")
+    escaped = escaped.replacingOccurrences(of: "\"", with: "\\\"")
+    escaped = escaped.replacingOccurrences(of: "\n", with: "\\n")
+    escaped = escaped.replacingOccurrences(of: "\r", with: "\\r")
+    escaped = escaped.replacingOccurrences(of: "\t", with: "\\t")
     return "\"\(escaped)\""
 }
 

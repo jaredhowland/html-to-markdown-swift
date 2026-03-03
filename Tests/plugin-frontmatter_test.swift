@@ -279,4 +279,28 @@ class FrontmatterPluginTests: XCTestCase {
         let t = tags(result)
         XCTAssertTrue(t.isEmpty, "tags section must be absent when no tags found")
     }
+
+    // MARK: - YAML special character escaping
+
+    func testYAMLSpecialCharsInTitle() throws {
+        let html = """
+        <html><head><title>A "quoted" title</title></head><body><p>x</p></body></html>
+        """
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("A \\\"quoted\\\" title"), "Double quotes must be escaped in YAML")
+    }
+
+    func testYAMLBackslashInDescription() throws {
+        let html = """
+        <html><head>
+        <meta name="description" content="path\\to\\file"/>
+        </head><body><p>x</p></body></html>
+        """
+        let result = try convert(html)
+        let fm = frontmatter(result)
+        // The stored value should have single backslashes (YAML double-quoted string unescaping)
+        // but since our test helper uses simple string parsing (not a real YAML parser),
+        // just verify the output contains the escaped form
+        XCTAssertTrue(result.contains("path\\\\to\\\\file"), "Backslashes must be double-escaped in YAML")
+    }
 }
