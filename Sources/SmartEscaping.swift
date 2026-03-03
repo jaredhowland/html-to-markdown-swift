@@ -11,7 +11,7 @@ let codeBlockNewlineMarker: Character = "\u{F002}"
 /// Mark potential escape candidates in text with a placeholder prefix.
 /// Only marks characters that could trigger markdown interpretation.
 func markEscapeCandidates(_ text: String) -> String {
-    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`", "="]
+    let candidates: Set<Character> = ["\\", "*", "_", "#", "+", "-", ".", "[", "]", "!", "~", "`", "=", ")"]
     var result = ""
     result.reserveCapacity(text.count * 2)
     for char in text {
@@ -56,23 +56,31 @@ private func shouldEscape(chars: [Character], at placeholderIdx: Int, char: Char
     case "\\":
         return true
     case "`":
-        return true
+        // Match Go: IsFencedCode skips 2nd/3rd backtick in a 3+ opening fence at start of line.
+        // IsInlineCode escapes all other backticks.
+        return !isSubsequentFencedBacktick(chars: chars, charIdx: charIdx)
     case "#":
         return isAtxHeaderContext(chars: chars, charIdx: charIdx)
     case "-":
         return isUnorderedListContext(chars: chars, charIdx: charIdx)
             || isSetextHeaderContext(chars: chars, charIdx: charIdx)
+            || isDividerContext(chars: chars, charIdx: charIdx)
     case "*", "+":
         return isUnorderedListContext(chars: chars, charIdx: charIdx)
             || (char == "*" && isEmphasisContext(chars: chars, charIdx: charIdx))
     case "_":
         return isEmphasisContext(chars: chars, charIdx: charIdx)
+            || isDividerContext(chars: chars, charIdx: charIdx)
     case ".":
+        return isOrderedListContext(chars: chars, charIdx: charIdx)
+    case ")":
         return isOrderedListContext(chars: chars, charIdx: charIdx)
     case "=":
         return isSetextHeaderContext(chars: chars, charIdx: charIdx)
     case "[":
         return isOpenBracketContext(chars: chars, charIdx: charIdx)
+    case "~":
+        return isFencedCodeContext(chars: chars, charIdx: charIdx)
     default:
         return false
     }
@@ -198,4 +206,63 @@ private func isOpenBracketContext(chars: [Character], charIdx: Int) -> Bool {
         if chars[j] == "]" { return true }
     }
     return false
+}
+
+/// Returns true if `-`, `_`, or `*` at charIdx forms a thematic break (divider).
+/// Matches Go's IsDivider: at start of line, 3+ same chars (spaces allowed between).
+private func isDividerContext(chars: [Character], charIdx: Int) -> Bool {
+    if !isAtStartOfLine(chars: chars, idx: charIdx) { return false }
+    let ch = chars[charIdx]
+    var count = 1
+    var j = charIdx + 1
+    while j < chars.count {
+        let c = chars[j]
+        if c == escapePlaceholder { j += 1; continue }
+        if c == " " { j += 1; continue }
+        if c == ch { count += 1; j += 1; continue }
+        if c == "\n" { break }
+        return false
+    }
+    return count >= 3
+}
+
+/// Returns true if `` ` `` or `~` at charIdx opens a fenced code block.
+/// Matches Go's IsFencedCode: at start of line, 3+ consecutive same chars (no spaces).
+private func isFencedCodeContext(chars: [Character], charIdx: Int) -> Bool {
+    if !isAtStartOfLine(chars: chars, idx: charIdx) { return false }
+    let ch = chars[charIdx]
+    var count = 1
+    var j = charIdx + 1
+    while j < chars.count {
+        if chars[j] == escapePlaceholder { j += 1; continue }
+        if chars[j] == ch { count += 1; j += 1 } else { break }
+    }
+    return count >= 3
+}
+
+/// Returns true if this backtick is the 2nd or later in a 3+ fenced opening at start of line.
+/// Matches Go's IsFencedCode skip behaviour: only the first backtick gets escaped.
+private func isSubsequentFencedBacktick(chars: [Character], charIdx: Int) -> Bool {
+    var prevIdx = charIdx - 1
+    while prevIdx >= 0, chars[prevIdx] == escapePlaceholder { prevIdx -= 1 }
+    guard prevIdx >= 0, chars[prevIdx] == "`" else { return false }
+
+    // Find the first backtick in this consecutive run
+    var firstIdx = prevIdx
+    while true {
+        var p = firstIdx - 1
+        while p >= 0, chars[p] == escapePlaceholder { p -= 1 }
+        if p >= 0, chars[p] == "`" { firstIdx = p } else { break }
+    }
+
+    guard isAtStartOfLine(chars: chars, idx: firstIdx) else { return false }
+
+    // Count the whole run; must be 3+
+    var count = 1
+    var j = firstIdx + 1
+    while j < chars.count {
+        if chars[j] == escapePlaceholder { j += 1; continue }
+        if chars[j] == "`" { count += 1; j += 1 } else { break }
+    }
+    return count >= 3
 }
