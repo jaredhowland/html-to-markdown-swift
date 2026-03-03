@@ -11,5 +11,6 @@ public class MarkdownExtraPlugin: Plugin {
         registerDefinitionLists(conv: conv)
         registerFootnotes(conv: conv)
         registerHeaderIds(conv: conv)
+        registerAbbreviations(conv: conv)
     }
 }

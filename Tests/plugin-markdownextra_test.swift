@@ -81,4 +81,32 @@ class MarkdownExtraPluginTests: XCTestCase {
         let result = try convert(html)
         XCTAssertTrue(result.contains("# Top {#top}"), "Expected h1 with ID in: \(result)")
     }
+
+    // MARK: - Abbreviations
+
+    func testAbbreviationAppendedAtEnd() throws {
+        let html = "<p>Use <abbr title=\"HyperText Markup Language\">HTML</abbr> wisely.</p>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("HTML"), "Expected abbr text inline in: \(result)")
+        XCTAssertTrue(result.contains("*[HTML]: HyperText Markup Language"), "Expected abbreviation def in: \(result)")
+    }
+
+    func testAbbreviationInlineTextPreserved() throws {
+        let html = "<p>Use <abbr title=\"HyperText Markup Language\">HTML</abbr> wisely.</p>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("Use HTML wisely"), "Expected inline text preserved in: \(result)")
+    }
+
+    func testAbbreviationWithoutTitleSkipped() throws {
+        let html = "<p><abbr>HTML</abbr></p>"
+        let result = try convert(html)
+        XCTAssertFalse(result.contains("*["), "Should not add def without title in: \(result)")
+    }
+
+    func testDuplicateAbbreviationDeduped() throws {
+        let html = "<p><abbr title=\"HyperText Markup Language\">HTML</abbr> and <abbr title=\"HyperText Markup Language\">HTML</abbr></p>"
+        let result = try convert(html)
+        let count = result.components(separatedBy: "*[HTML]:").count - 1
+        XCTAssertEqual(count, 1, "Should only have one abbreviation def, got: \(result)")
+    }
 }
