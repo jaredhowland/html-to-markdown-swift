@@ -1,13 +1,14 @@
 import Foundation
 import SwiftSoup
 
-/// Set of HTML block-level element tag names (matches Go's NameIsBlockNode and registered block types)
+/// Set of HTML block-level element tag names (matches Go's NameIsBlockNode)
+/// Note: table sub-elements (tr, td, th, thead, tbody, tfoot) are NOT included,
+/// matching Go's dom.NameIsBlockNode which returns false for these elements.
 let htmlBlockTags: Set<String> = [
     "address", "article", "aside", "blockquote", "canvas", "dd", "div",
     "dl", "dt", "fieldset", "figcaption", "figure", "footer", "form",
     "h1", "h2", "h3", "h4", "h5", "h6", "header", "hr", "li", "main",
-    "nav", "noscript", "ol", "p", "pre", "section", "table", "tfoot",
-    "thead", "tbody", "tr", "th", "td", "ul", "video",
+    "nav", "noscript", "ol", "p", "pre", "section", "table", "ul", "video",
     "body", "html", "head",
 ]
 
