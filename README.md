@@ -87,6 +87,9 @@ conv.Register.tagType("nav", .remove)
 | `YouTubeEmbedPlugin` | Converts YouTube `<iframe>` embeds to clickable thumbnail images |
 | `AtlassianPlugin` | Atlassian/Confluence: autolinks, image sizing, Confluence code macros, attachment links |
 | `MultiMarkdownPlugin` | MultiMarkdown 4: sub/sup, definition lists, image attributes, figure/figcaption, footnotes |
+| `MarkdownExtraPlugin` | PHP Markdown Extra: definition lists, footnotes, header IDs `{#id}`, abbreviation reference list |
+| `PandocPlugin` | Pandoc Markdown: LaTeX math (`$...$`, `$$...$$`), definition lists, footnotes, sub/sup `^x^`/`~x~`, header IDs |
+| `RMarkdownPlugin` | R Markdown (extends Pandoc): tabsets → `##` sections, figure captions from `<figcaption>` |
 | `FrontmatterPlugin` | Extracts page metadata (`<title>`, `<meta>`) and prepends YAML frontmatter |
 
 ### Writing a Plugin
@@ -152,6 +155,9 @@ See the [`Examples/`](Examples/) directory for complete runnable examples:
 - [08 - MultiMarkdown](Examples/08-multimarkdown/)
 - [09 - YouTube & Vimeo Embeds](Examples/09-youtube-vimeo/)
 - [10 - Atlassian Confluence](Examples/10-atlassian-confluence/)
+- [11 - Markdown Extra](Examples/11-markdown-extra/)
+- [12 - Pandoc](Examples/12-pandoc/)
+- [13 - R Markdown](Examples/13-rmarkdown/)
 
 ## FAQ
 
