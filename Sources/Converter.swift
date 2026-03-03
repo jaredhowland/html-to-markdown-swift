@@ -48,13 +48,13 @@ public class Converter {
     func convertString(_ html: String) throws -> String {
         let document = try SwiftSoup.parse(html)
 
-        // Pre-render: collapse HTML whitespace
-        try collapseHTMLWhitespace(document)
-
-        // Pre-render: document-level plugin transformations
+        // Pre-render: document-level plugin transformations (runs BEFORE collapse, matching Go's order)
         for plugin in plugins {
             try plugin.handleDocumentPreRender(document: document, converter: self)
         }
+
+        // Pre-render: collapse HTML whitespace (runs AFTER plugin pre-render, matching Go's PriorityLate)
+        try collapseHTMLWhitespace(document)
 
         var result = try convertNode(document)
 
@@ -66,6 +66,10 @@ public class Converter {
         if getOptions().escapeMode != .disabled {
             result = applySmartEscaping(result)
         }
+
+        // Restore code block newline markers after all post-processing
+        result = result.replacingOccurrences(of: String(codeBlockNewlineMarker), with: "\n")
+
         return result
     }
     
@@ -74,36 +78,38 @@ public class Converter {
         if let textNode = node as? TextNode {
             return try processTextNode(textNode)
         }
-        
+
         var result = ""
+        var wasRendered = false
 
         // Run pre-render handlers
         for plugin in plugins {
             try plugin.handlePreRender(node: node, converter: self)
         }
-        
+
         // Render the node
         for plugin in plugins {
             if let rendered = try plugin.handleRender(node: node, converter: self) {
                 result = rendered
+                wasRendered = true
                 break
             }
         }
 
         // Fallback: if nothing rendered, render children by default
-        if result.isEmpty {
+        if !wasRendered {
             var combined = ""
             for child in node.getChildNodes() {
                 combined += try convertNode(child)
             }
             result = combined
         }
-        
+
         // Run post-render handlers
         for plugin in plugins {
             result = try plugin.handlePostRender(node: node, content: result, converter: self)
         }
-        
+
         return result
     }
     

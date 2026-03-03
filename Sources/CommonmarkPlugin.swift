@@ -113,6 +113,7 @@ class CommonmarkPlugin: Plugin {
         try removeRedundantBoldItalic(document)
         try mergeAdjacentBoldItalic(document)
         try mergeAdjacentInlineCode(document)
+        try addSpacesAroundEmphasisContainingCode(document)
     }
 
     // MARK: - DOM Pre-render Transformations
@@ -147,6 +148,95 @@ class CommonmarkPlugin: Plugin {
             try element.remove()
         }
     }
+
+    /// Add spaces around bold/italic elements whose first/last child is inline code.
+    /// Mirrors Go's domutils.AddSpace(ctx, doc, nameIsBoldOrItalic, nameIsInlineCode).
+    private func addSpacesAroundEmphasisContainingCode(_ doc: Document) throws {
+        let emphasisElements = try doc.select("strong, b, em, i")
+        for element in emphasisElements {
+            if getFirstCodeChild(element) != nil {
+                if let prevText = getPrevTextNodeOf(element) {
+                    try prevText.text(prevText.getWholeText() + " ")
+                }
+            }
+            if getLastCodeChild(element) != nil {
+                if let nextText = getNextTextNodeOf(element) {
+                    try nextText.text(" " + nextText.getWholeText())
+                }
+            }
+        }
+    }
+
+    /// Get first non-span child that is inline code, skipping empty spans (matches Go's getFirstChildNode).
+    private func getFirstCodeChild(_ node: Node) -> Node? {
+        var child: Node? = (node as? Element)?.getChildNodes().first
+        while let c = child {
+            if let el = c as? Element {
+                if el.tagName() == "span" {
+                    if el.getChildNodes().isEmpty {
+                        // Empty span: skip to next sibling (matches Go's GetNextNeighborNode)
+                        child = el.nextSibling()
+                    } else {
+                        child = el.getChildNodes().first
+                    }
+                    continue
+                }
+                if isInlineCodeTag(el.tagName()) { return el }
+            }
+            return nil
+        }
+        return nil
+    }
+
+    /// Get last non-span child that is inline code, skipping empty spans (matches Go's getLastChildNode).
+    private func getLastCodeChild(_ node: Node) -> Node? {
+        var child: Node? = (node as? Element)?.getChildNodes().last
+        while let c = child {
+            if let el = c as? Element {
+                if el.tagName() == "span" {
+                    if el.getChildNodes().isEmpty {
+                        // Empty span: skip to previous sibling (matches Go's GetPrevNeighborNode)
+                        child = el.previousSibling()
+                    } else {
+                        child = el.getChildNodes().last
+                    }
+                    continue
+                }
+                if isInlineCodeTag(el.tagName()) { return el }
+            }
+            return nil
+        }
+        return nil
+    }
+
+    /// Get previous adjacent text node (matches Go's getPrevTextNode / GetPrevNeighborNodeExcludingOwnChild).
+    private func getPrevTextNodeOf(_ node: Node) -> TextNode? {
+        var prev: Node? = node.previousSibling()
+        while let p = prev {
+            if let textNode = p as? TextNode { return textNode }
+            if let el = p as? Element, el.tagName() == "span" {
+                prev = el.getChildNodes().last
+                continue
+            }
+            return nil
+        }
+        return nil
+    }
+
+    /// Get next adjacent text node (matches Go's getNextTextNode / GetNextNeighborNodeExcludingOwnChild).
+    private func getNextTextNodeOf(_ node: Node) -> TextNode? {
+        var next: Node? = node.nextSibling()
+        while let n = next {
+            if let textNode = n as? TextNode { return textNode }
+            if let el = n as? Element, el.tagName() == "span" {
+                next = el.getChildNodes().first
+                continue
+            }
+            return nil
+        }
+        return nil
+    }
+
 
     /// Unwrap redundant nested bold/italic elements (matches Go's RemoveRedundant)
     private func removeRedundantBoldItalic(_ doc: Document) throws {
@@ -229,8 +319,8 @@ class CommonmarkPlugin: Plugin {
         }
     }
 
-    /// Find the next sibling element that is in the same family, skipping spans and
-    /// whitespace-only text nodes. Returns nil if a non-matching, non-skippable node is found first.
+    /// Returns nil if a non-matching, non-skippable node is found first.
+    /// Mirrors Go's collectAdjacentNodes which stops immediately on any text node.
     private func nextMatchingSibling(
         _ element: Element,
         matchFn: (String) -> Bool,
@@ -238,17 +328,13 @@ class CommonmarkPlugin: Plugin {
     ) -> Element? {
         var sibling: Node? = element.nextSibling()
         while let s = sibling {
-            if let textNode = s as? TextNode {
-                if textNode.getWholeText().trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    sibling = s.nextSibling()
-                    continue
-                }
-                return nil  // non-empty text between → stop
+            if s is TextNode {
+                return nil  // any text node stops the merge (matches Go's collectAdjacentNodes)
             }
             if let el = s as? Element {
                 let tag = el.tagName()
                 if tag == "span" {
-                    // DFS into span: if its first child is a TextNode (any), stop merge;
+                    // DFS into span: if its first child is a TextNode, stop merge;
                     // if nil, skip span; if Element, dive into it (matches Go's GetNextNeighborNode).
                     if let firstChild = el.getChildNodes().first {
                         if firstChild is TextNode { return nil }
@@ -573,7 +659,11 @@ class CommonmarkPlugin: Plugin {
             let fenceLen = max(3, maxRun + 1)
             let actualFence = String(repeating: fenceChar, count: fenceLen)
 
-            return "\n\n\(actualFence)\(language)\n\(rawContent)\n\(actualFence)\n\n"
+            // Replace \n inside code block with marker to protect from trimConsecutiveNewlines.
+            // Matches Go's use of marker.MarkerCodeBlockNewline.
+            let markedContent = rawContent.replacingOccurrences(of: "\n", with: String(codeBlockNewlineMarker))
+
+            return "\n\n\(actualFence)\(language)\n\(markedContent)\n\(actualFence)\n\n"
         }
     }
 

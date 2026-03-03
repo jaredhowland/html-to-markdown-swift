@@ -4,6 +4,10 @@ import Foundation
 /// Using Unicode Interlinear Annotation Anchor (U+FFF9) from Private Use Area.
 let escapePlaceholder: Character = "\u{FFF9}"
 
+/// Marker replacing \n inside code blocks to protect them from trimConsecutiveNewlines.
+/// Matches Go's marker.MarkerCodeBlockNewline (U+F002).
+let codeBlockNewlineMarker: Character = "\u{F002}"
+
 /// Mark potential escape candidates in text with a placeholder prefix.
 /// Only marks characters that could trigger markdown interpretation.
 func markEscapeCandidates(_ text: String) -> String {

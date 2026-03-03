@@ -91,7 +91,7 @@ class BasePlugin: Plugin {
         for tag in ["#document", "div", "section", "article", "main", "header", "footer", "p"] {
             converter.registerRenderer(tag) { node, converter in
                 let children = try renderChildren(node, converter: converter)
-                let trimmed = collapseInlineSpaces(children).trimmingCharacters(in: .init(charactersIn: " \t"))
+                let trimmed = children.trimmingCharacters(in: .init(charactersIn: " \t"))
                 return trimConsecutiveNewlines("\n\n\(trimmed)\n\n")
             }
         }
@@ -165,8 +165,13 @@ func collapseInlineSpaces(_ text: String) -> String {
 public func RenderAsHTML(_ node: Node, _ converter: Converter) throws -> String? {
     guard let element = node as? Element else {
         // Handle Comment nodes: render as block HTML (<!--...-->)
+        // Go's html.Render escapes HTML entities in comment data (&amp;, &lt;, &gt;, etc.)
         if let comment = node as? Comment {
-            return "\n\n<!--\(comment.getData())-->\n\n"
+            let escaped = comment.getData()
+                .replacingOccurrences(of: "&", with: "&amp;")
+                .replacingOccurrences(of: "<", with: "&lt;")
+                .replacingOccurrences(of: ">", with: "&gt;")
+            return "\n\n<!--\(escaped)-->\n\n"
         }
         return nil
     }
