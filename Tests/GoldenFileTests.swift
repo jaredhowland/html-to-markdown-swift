@@ -20,10 +20,7 @@ class GoldenFileTests: XCTestCase {
             return
         }
 
-        let trimResult = result.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimExpected = expected.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        XCTAssertEqual(trimResult, trimExpected, "Golden file mismatch: \(description)")
+        XCTAssertEqual(result, expected, "Golden file mismatch: \(description)")
     }
 
     // The Go golden file tests for commonmark render HTML comments as block HTML.
