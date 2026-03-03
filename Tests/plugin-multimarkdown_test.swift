@@ -53,6 +53,20 @@ class MultiMarkdownPluginTests: XCTestCase {
         XCTAssertTrue(result.contains("{width=100px height=200px}"), "Expected px sizing in: \(result)")
     }
 
+    func testImageWithWidthOnly() throws {
+        let html = "<img src=\"img.jpg\" alt=\"Alt\" width=\"640\">"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("{width=640px}"), "Expected width-only sizing in: \(result)")
+        XCTAssertFalse(result.contains("height"), "Should not contain height in: \(result)")
+    }
+
+    func testImageWithHeightOnly() throws {
+        let html = "<img src=\"img.jpg\" alt=\"Alt\" height=\"480\">"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("{height=480px}"), "Expected height-only sizing in: \(result)")
+        XCTAssertFalse(result.contains("width"), "Should not contain width in: \(result)")
+    }
+
     func testImageWithoutAttributes() throws {
         let html = "<img src=\"img.jpg\" alt=\"Alt\">"
         let result = try convert(html)
