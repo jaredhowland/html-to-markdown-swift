@@ -109,25 +109,6 @@ let md1 = try converter.convertString(html1)
 let md2 = try converter.convertString(html2)
 ```
 
-### Advanced: Register Custom Renderers
-
-```swift
-let converter = HTMLToMarkdown.createConverter(plugins: [
-    BasePlugin(),
-    CommonmarkPlugin()
-])
-
-// Register custom renderer for specific tag
-converter.registerRenderer("custom-tag") { node, converter in
-    let content = try renderChildren(node, converter: converter)
-    return "CUSTOM[\(content)]"
-}
-
-let html = "<custom-tag>content</custom-tag>"
-let markdown = try converter.convertString(html)
-// Output: CUSTOM[content]
-```
-
 ## Plugin Documentation
 
 ### Built-In Plugins
@@ -342,7 +323,6 @@ Issues and pull requests are welcome! When contributing:
 1. Ensure all tests pass
 2. Add tests for new features
 3. Follow Swift naming conventions
-4. Keep the API consistent with the Go original
 
 ## Licensing
 
