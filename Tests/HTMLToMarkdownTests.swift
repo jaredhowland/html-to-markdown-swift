@@ -694,4 +694,22 @@ class HTMLToMarkdownTests: XCTestCase {
     func testSetextSingleEqualEscaped() throws {
         XCTAssertEqual(try convert("<p>not title<br/>=</p>"), "not title  \n\\=")
     }
+
+    // MARK: - SwapTags: Bold/Italic wrapping Link
+
+    func testBoldWrappingLink() throws {
+        XCTAssertEqual(try convert("<p>before<b><a href=\"/\">middle</a></b>after</p>"), "before[**middle**](/)after")
+    }
+
+    func testItalicWrappingLink() throws {
+        XCTAssertEqual(try convert("<p><em><a href=\"/page\">text</a></em></p>"), "[*text*](/page)")
+    }
+
+    func testStrongWrappingLink() throws {
+        XCTAssertEqual(try convert("<strong><a href=\"/\">bold link</a></strong>"), "[**bold link**](/)")
+    }
+
+    func testBracketsInLinkText() throws {
+        XCTAssertEqual(try convert("<a href=\"/page.html\">a(b)[c]</a>"), "[a(b)\\[c\\]](/page.html)")
+    }
 }
