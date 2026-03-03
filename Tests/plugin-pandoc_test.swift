@@ -79,4 +79,32 @@ class PandocPluginTests: XCTestCase {
         let result = try convert(html)
         XCTAssertFalse(result.contains("{#"), "Should not add ID syntax without id attr in: \(result)")
     }
+
+    // MARK: - Math
+
+    func testInlineMath() throws {
+        let html = "<p>The formula is <span class=\"math inline\">\\(x^2 + y^2\\)</span>.</p>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("$x^2 + y^2$"), "Expected inline math in: \(result)")
+    }
+
+    func testDisplayMathSpan() throws {
+        let html = "<p><span class=\"math display\">\\[E = mc^2\\]</span></p>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("$$"), "Expected display math delimiters in: \(result)")
+        XCTAssertTrue(result.contains("E = mc^2"), "Expected math content in: \(result)")
+    }
+
+    func testDisplayMathDiv() throws {
+        let html = "<div class=\"math display\">\\[\\sum_{i=1}^{n} i\\]</div>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("$$"), "Expected display math delimiters in: \(result)")
+    }
+
+    func testNonMathSpanUnaffected() throws {
+        let html = "<p><span class=\"highlight\">text</span></p>"
+        let result = try convert(html)
+        XCTAssertTrue(result.contains("text"), "Expected span text in: \(result)")
+        XCTAssertFalse(result.contains("$"), "Should not add math delimiters in: \(result)")
+    }
 }

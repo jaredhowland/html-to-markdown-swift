@@ -20,5 +20,6 @@ public class PandocPlugin: Plugin {
         registerFootnotes(conv: conv)
         registerSubSup(conv: conv)
         registerHeaderIds(conv: conv)
+        registerMath(conv: conv)
     }
 }
