@@ -91,6 +91,10 @@ conv.Register.tagType("nav", .remove)
 | `PandocPlugin` | Pandoc Markdown: LaTeX math (`$...$`, `$$...$$`), definition lists, footnotes, sub/sup `^x^`/`~x~`, header IDs |
 | `RMarkdownPlugin` | R Markdown (extends Pandoc): tabsets → `##` sections, figure captions from `<figcaption>` |
 | `FrontmatterPlugin` | Extracts page metadata (`<title>`, `<meta>`) and prepends YAML frontmatter |
+| `TypographyPlugin` | Bundles SmartQuotesPlugin, ReplacementsPlugin, LinkifyPlugin; configure with `smartQuotes`/`replacements`/`linkify` flags and `quoteStyle` (`.english`, `.german`, `.french`, `.swedish`) |
+| `SmartQuotesPlugin` | Converts straight `"` and `'` to typographic quotes; locale-aware styles; skips code regions; handles `<q>` elements |
+| `ReplacementsPlugin` | `(c)`→`©`, `(r)`→`®`, `(tm)`→`™`, `+-`→`±`, `...`→`…`, `---`→`—`, `--`→`–`; skips code regions |
+| `LinkifyPlugin` | Converts bare `https://`/`http://` URLs to `[url](url)` links; handles parentheses in URLs; skips code regions and existing Markdown links |
 
 ### Writing a Plugin
 
@@ -158,6 +162,7 @@ See the [`Examples/`](Examples/) directory for complete runnable examples:
 - [11 - Markdown Extra](Examples/11-markdown-extra/)
 - [12 - Pandoc](Examples/12-pandoc/)
 - [13 - R Markdown](Examples/13-rmarkdown/)
+- [14 - Typography](Examples/14-typography/)
 
 ## FAQ
 
