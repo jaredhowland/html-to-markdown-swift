@@ -1,3 +1,6 @@
+![Static Badge](https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=F05138&label=Swift&labelColor=666666)
+
+
 # html-to-markdown-swift 0.9.0 (Swift)
 
 A robust, fully featured Swift port of [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown) — convert HTML (even entire websites) into clean, readable Markdown.
