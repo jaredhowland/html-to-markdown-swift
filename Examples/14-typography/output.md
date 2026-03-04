@@ -2,13 +2,13 @@
 
 ## Smart Quotes
 
-She said "Hello, world!" and he replied "That's wonderful!"
+She said “Hello, world!” and he replied “That’s wonderful!”
 
-The book 'A Brief History of Time' changed my perspective.
+The book ‘A Brief History of Time’ changed my perspective.
 
-It's a beautiful day, don't you think?
+It’s a beautiful day, don’t you think?
 
-She said "This is a semantic quote element."
+She said “This is a semantic quote element.”
 
 ## Typographic Replacements
 
@@ -40,11 +40,11 @@ let url = "https://raw-url.com"  -- not linkified
 
 ## German Quotes
 
-Er sagte "Guten Tag" und sie antwortete "Danke schön".
+Er sagte “Guten Tag” und sie antwortete “Danke schön”.
 
 
 ---
 
 // German quote style:
 
-Er sagte „Guten Tag" und sie antwortete „Danke schön".
+Er sagte „Guten Tag“ und sie antwortete „Danke schön“.
