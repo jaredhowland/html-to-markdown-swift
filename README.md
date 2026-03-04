@@ -1,4 +1,4 @@
-# html-to-markdown-swift v2.5.0 (Swift)
+# html-to-markdown-swift 0.9.0 (Swift)
 
 A robust, fully featured Swift port of [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown) — convert HTML (even entire websites) into clean, readable Markdown.
 
@@ -21,7 +21,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/jaredhowland/html-to-markdown-swift.git", from: "2.5.0")
+    .package(url: "https://github.com/jaredhowland/html-to-markdown-swift.git", from: "0.9.0")
 ]
 ```
 
@@ -95,30 +95,8 @@ conv.Register.tagType("nav", .remove)
 | `SmartQuotesPlugin` | Converts straight `"` and `'` to typographic quotes; locale-aware styles; skips code regions; handles `<q>` elements |
 | `ReplacementsPlugin` | `(c)`→`©`, `(r)`→`®`, `(tm)`→`™`, `+-`→`±`, `...`→`…`, `---`→`—`, `--`→`–`; skips code regions |
 | `LinkifyPlugin` | Converts bare `https://`/`http://` URLs to `[url](url)` links; handles parentheses in URLs; skips code regions and existing Markdown links |
-| `ReferenceLinkPlugin` | `plugin/referencelinks` | Numbered reference-style links at document bottom (deduplication, titles); `inlineLinks: true` to revert to inline |
-| `EmojiPlugin` | `plugin/emoji` | GitHub emoji `:shortcode:` output from `<img class="emoji">` and Unicode emoji conversion; bundled 1900+ entry table |
-
-### ReferenceLinkPlugin
-
-```swift
-let conv = Converter()
-try conv.Register.plugin(BasePlugin())
-try conv.Register.plugin(CommonmarkPlugin())
-try conv.Register.plugin(ReferenceLinkPlugin()) // reference-style links (default)
-// Or: ReferenceLinkPlugin(inlineLinks: true)   // revert to inline links
-let markdown = try conv.convertString(html)
-```
-
-### EmojiPlugin
-
-```swift
-let conv = Converter()
-try conv.Register.plugin(BasePlugin())
-try conv.Register.plugin(CommonmarkPlugin())
-try conv.Register.plugin(EmojiPlugin())                        // :shortcode: output (default)
-// Or: EmojiPlugin(outputStyle: .unicode)                      // Unicode emoji output
-let markdown = try conv.convertString(html)
-```
+| `ReferenceLinkPlugin` | Numbered reference-style links at document bottom (deduplication, titles); `inlineLinks: true` to revert to inline |
+| `EmojiPlugin` | GitHub emoji `:shortcode:` output from `<img class="emoji">` and Unicode emoji conversion; bundled 1900+ entry table |
 
 ### Writing a Plugin
 
@@ -171,7 +149,7 @@ Available registration methods:
 
 ## Examples
 
-These examples were generated using html-to-markdown-swift v2.5.0. See the folders under `Examples/` for runnable sample code and their output.
+These examples were generated using html-to-markdown-swift 0.9.0. See the folders under `Examples/` for runnable sample code and their output.
 
 See the [`Examples/`](Examples/) directory for complete runnable examples:
 
