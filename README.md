@@ -70,8 +70,9 @@ Each HTML element has a *tag type* — `block`, `inline`, or `remove`. This cont
 conv.Register.tagType("div", .inline, priority: PriorityEarly)
 
 // Remove an element from output
-conv.Register.tagType("nav", .remove)
+conv.Register.tagType("nav", .remove, priority: PriorityStandard)
 ```
+
 
 ## Plugins
 
@@ -115,17 +116,17 @@ public class MyPlugin: Plugin {
             w.writeString("> ")
             ctx.renderChildNodes(w, node)
             return .success
-        })
+        }, priority: PriorityStandard)
 
         // Pre-process the DOM before rendering
         conv.Register.preRenderer({ ctx, doc in
             // Modify the SwiftSoup document
-        })
+        }, priority: PriorityEarly)
 
         // Post-process the final markdown string
         conv.Register.postRenderer({ ctx, result in
             return result.trimmingCharacters(in: .whitespacesAndNewlines)
-        })
+        }, priority: PriorityStandard)
 
         // Bundle another plugin as a dependency
         try conv.Register.plugin(CommonmarkPlugin())
@@ -137,15 +138,15 @@ Available registration methods:
 
 | Method | Purpose |
 |--------|---------|
-| `rendererFor(tag, type, handler)` | Render a specific HTML tag |
-| `renderer(handler)` | Catch-all renderer for all tags |
-| `preRenderer(handler, priority)` | Transform DOM before rendering |
-| `postRenderer(handler, priority)` | Transform final markdown string |
-| `textTransformer(handler)` | Transform text node content |
-| `escapedChar(char)` | Mark a character as needing escaping |
-| `unEscaper(handler)` | Control when a character is unescaped |
-| `tagType(tag, type, priority)` | Override block/inline/remove classification |
-| `plugin(plugin)` | Register a sub-plugin dependency |
+| `rendererFor(_ tagName: String, _ tagType: TagType, _ fn: @escaping HandleRenderFunc, priority: Int)` | Render a specific HTML tag |
+| `renderer(_ fn: @escaping HandleRenderFunc, priority: Int)` | Catch-all renderer for all tags |
+| `preRenderer(_ fn: @escaping HandlePreRenderFunc, priority: Int)` | Transform DOM before rendering |
+| `postRenderer(_ fn: @escaping HandlePostRenderFunc, priority: Int)` | Transform final markdown string |
+| `textTransformer(_ fn: @escaping HandleTextTransformFunc, priority: Int)` | Transform text node content |
+| `escapedChar(_ chars: Character...)` | Mark a character as needing escaping |
+| `unEscaper(_ fn: @escaping HandleUnEscapeFunc, priority: Int)` | Control when a character is unescaped |
+| `tagType(_ tagName: String, _ type: TagType, priority: Int)` | Override block/inline/remove classification |
+| `plugin(_ p: Plugin) throws` | Register a sub-plugin dependency |
 
 ## Examples
 
