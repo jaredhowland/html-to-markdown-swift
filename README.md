@@ -1,5 +1,5 @@
 ![Static Badge](https://img.shields.io/badge/Swift-6.2-F05138?style=flat-square&logo=swift&logoColor=F05138&label=Swift&labelColor=666666)
-
+![Static Badge](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20tvOS%20%7C%20watchOS-F05138?style=flat-square&logo=swift&logoColor=F05138&label=Platforms&labelColor=666666)
 
 # html-to-markdown-swift 0.9.0 (Swift)
 
