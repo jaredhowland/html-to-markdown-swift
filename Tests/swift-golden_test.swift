@@ -158,4 +158,11 @@ class GoldenFileTests: XCTestCase {
                       plugins: [BasePlugin(), CommonmarkPlugin(), ReferenceLinkPlugin()],
                       description: "referencelinks/image-reference")
     }
+
+    func testEmojiGolden() {
+        let base = "\(goldenBase)/plugin/emoji/testdata/GoldenFiles/emoji"
+        runGoldenFile(inputPath: "\(base).in.html", expectedPath: "\(base).out.md",
+                      plugins: [BasePlugin(), CommonmarkPlugin(), EmojiPlugin()],
+                      description: "emoji/emoji")
+    }
 }

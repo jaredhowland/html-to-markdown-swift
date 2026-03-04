@@ -16,6 +16,7 @@ private func convert(_ html: String, style: EmojiOutputStyle = .shortcode) throw
 
 class EmojiPluginTests: XCTestCase {
 
+
     func testEmojiImgToShortcode() throws {
         let html = "<p>Hello <img class=\"emoji\" src=\"https://github.githubassets.com/images/icons/emoji/unicode/1f600.png\" alt=\":grinning:\"> world</p>"
         let result = try convert(html)
