@@ -1,4 +1,4 @@
-# html-to-markdown (Swift)
+# html-to-markdown-swift v2.5.0 (Swift)
 
 A robust, fully featured Swift port of [html-to-markdown](https://github.com/JohannesKaufmann/html-to-markdown) — convert HTML (even entire websites) into clean, readable Markdown.
 
@@ -21,7 +21,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourorg/html-to-markdown-swift.git", from: "1.0.0")
+    .package(url: "https://github.com/yourorg/html-to-markdown-swift.git", from: "2.5.0")
 ]
 ```
 
