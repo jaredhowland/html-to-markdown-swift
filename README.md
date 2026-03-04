@@ -171,6 +171,8 @@ Available registration methods:
 
 ## Examples
 
+These examples were generated using html-to-markdown-swift v2.5.0. See the folders under `Examples/` for runnable sample code and their output.
+
 See the [`Examples/`](Examples/) directory for complete runnable examples:
 
 - [01 - Basic Conversion](Examples/01-basic-conversion/)
