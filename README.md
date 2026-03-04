@@ -95,6 +95,30 @@ conv.Register.tagType("nav", .remove)
 | `SmartQuotesPlugin` | Converts straight `"` and `'` to typographic quotes; locale-aware styles; skips code regions; handles `<q>` elements |
 | `ReplacementsPlugin` | `(c)`→`©`, `(r)`→`®`, `(tm)`→`™`, `+-`→`±`, `...`→`…`, `---`→`—`, `--`→`–`; skips code regions |
 | `LinkifyPlugin` | Converts bare `https://`/`http://` URLs to `[url](url)` links; handles parentheses in URLs; skips code regions and existing Markdown links |
+| `ReferenceLinkPlugin` | `plugin/referencelinks` | Numbered reference-style links at document bottom (deduplication, titles); `inlineLinks: true` to revert to inline |
+| `EmojiPlugin` | `plugin/emoji` | GitHub emoji `:shortcode:` output from `<img class="emoji">` and Unicode emoji conversion; bundled 1900+ entry table |
+
+### ReferenceLinkPlugin
+
+```swift
+let conv = Converter()
+try conv.Register.plugin(BasePlugin())
+try conv.Register.plugin(CommonmarkPlugin())
+try conv.Register.plugin(ReferenceLinkPlugin()) // reference-style links (default)
+// Or: ReferenceLinkPlugin(inlineLinks: true)   // revert to inline links
+let markdown = try conv.convertString(html)
+```
+
+### EmojiPlugin
+
+```swift
+let conv = Converter()
+try conv.Register.plugin(BasePlugin())
+try conv.Register.plugin(CommonmarkPlugin())
+try conv.Register.plugin(EmojiPlugin())                        // :shortcode: output (default)
+// Or: EmojiPlugin(outputStyle: .unicode)                      // Unicode emoji output
+let markdown = try conv.convertString(html)
+```
 
 ### Writing a Plugin
 
@@ -163,6 +187,8 @@ See the [`Examples/`](Examples/) directory for complete runnable examples:
 - [12 - Pandoc](Examples/12-pandoc/)
 - [13 - R Markdown](Examples/13-rmarkdown/)
 - [14 - Typography](Examples/14-typography/)
+- [15 - Reference Links](Examples/15-reference-links/)
+- [16 - Emoji](Examples/16-emoji/)
 
 ## FAQ
 
