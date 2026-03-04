@@ -92,4 +92,12 @@ class ReplacementsPluginTests: XCTestCase {
         XCTAssertTrue(result.contains("`(c)`"), "Inline code must not be replaced in: \(result)")
         XCTAssertFalse(result.contains("©"), "Should not replace in inline code: \(result)")
     }
+
+    func testUnicodeLinesBeforeCodeBlock() throws {
+        // A line with emoji before a code block — indices must be correct
+        let result = try convert("<p>Hello 😀</p><pre><code>(c) test</code></pre>")
+        XCTAssertTrue(result.contains("Hello 😀"), "Unicode content should be preserved: \(result)")
+        XCTAssertFalse(result.contains("©"), "Code block after Unicode line must be protected: \(result)")
+        XCTAssertTrue(result.contains("(c) test"), "Code block content should be unchanged: \(result)")
+    }
 }

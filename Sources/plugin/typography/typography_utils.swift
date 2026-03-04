@@ -12,7 +12,7 @@ private func codeRanges(in text: String) -> [Range<String.Index>] {
     var idx = text.startIndex
     for line in lines {
         lineStart.append(idx)
-        idx = text.index(idx, offsetBy: line.utf16.count + 1, limitedBy: text.endIndex) ?? text.endIndex
+        idx = text.index(idx, offsetBy: line.count + 1, limitedBy: text.endIndex) ?? text.endIndex
     }
 
     var inFence = false
