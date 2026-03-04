@@ -95,6 +95,15 @@ class ReferenceLinkPluginTests: XCTestCase {
         }
     }
 
+    func testDeduplicationFirstTitleWins() throws {
+        // When same URL appears with different titles, first-encountered title is used
+        let result = try convert("<p><a href=\"https://example.com\" title=\"First Title\">Link1</a> and <a href=\"https://example.com\" title=\"Second Title\">Link2</a></p>")
+        XCTAssertTrue(result.contains("[Link1][1]"), "First link: \(result)")
+        XCTAssertTrue(result.contains("[Link2][1]"), "Second link (same URL): \(result)")
+        XCTAssertTrue(result.contains("[1]: https://example.com \"First Title\""), "First title wins: \(result)")
+        XCTAssertFalse(result.contains("Second Title"), "Second title should not appear: \(result)")
+    }
+
     func testEmojiImagePassthrough() throws {
         // img with class="emoji" should NOT get reference-style treatment
         let result = try convert("<p><img class=\"emoji\" src=\"https://github.githubassets.com/images/icons/emoji/unicode/1f600.png\" alt=\":grinning:\"></p>")
