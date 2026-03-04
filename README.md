@@ -21,7 +21,7 @@ Add to your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/yourorg/html-to-markdown-swift.git", from: "2.5.0")
+    .package(url: "https://github.com/jaredhowland/html-to-markdown-swift.git", from: "2.5.0")
 ]
 ```
 
