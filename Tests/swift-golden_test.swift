@@ -144,4 +144,18 @@ class GoldenFileTests: XCTestCase {
                       plugins: [BasePlugin(), CommonmarkPlugin(), StrikethroughPlugin()],
                       description: "strikethrough/strikethrough")
     }
+
+    func testReferenceLinkLink() {
+        let base = "\(goldenBase)/plugin/referencelinks/testdata/GoldenFiles/link-reference"
+        runGoldenFile(inputPath: "\(base).in.html", expectedPath: "\(base).out.md",
+                      plugins: [BasePlugin(), CommonmarkPlugin(), ReferenceLinkPlugin()],
+                      description: "referencelinks/link-reference")
+    }
+
+    func testReferenceLinkImage() {
+        let base = "\(goldenBase)/plugin/referencelinks/testdata/GoldenFiles/image-reference"
+        runGoldenFile(inputPath: "\(base).in.html", expectedPath: "\(base).out.md",
+                      plugins: [BasePlugin(), CommonmarkPlugin(), ReferenceLinkPlugin()],
+                      description: "referencelinks/image-reference")
+    }
 }
