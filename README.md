@@ -1,5 +1,5 @@
-![Static Badge](https://img.shields.io/badge/Swift-6.2%20%7C%206.1%20%7C%206.0%20%7C%205.10-F05138?style=flat-square&logo=swift&logoColor=F05138&label=Swift&labelColor=666666)
-![Static Badge](https://img.shields.io/badge/Platforms-iOS%20%7C%20macOS%20%7C%20visionOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20Linux%20%7C%20Android-F05138?style=flat-square&logo=swift&logoColor=F05138&label=Platforms&labelColor=666666)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fjaredhowland%2Fhtml-to-markdown-swift%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/jaredhowland/html-to-markdown-swift)
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fjaredhowland%2Fhtml-to-markdown-swift%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/jaredhowland/html-to-markdown-swift)
 
 # html-to-markdown-swift 0.9.0 (Swift)
 
